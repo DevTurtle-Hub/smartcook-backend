@@ -2,24 +2,46 @@ import "dotenv/config";
 
 interface EnvConfig {
   PORT: number;
-  NODE_ENV: string;
+  NODE_ENV: "development" | "production" | "test";
   MONGODB_URI: string;
   CORS_ORIGIN: string;
   RATE_LIMIT_WINDOW_MS: number;
   RATE_LIMIT_MAX: number;
+  JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
+  JWT_REFRESH_SECRET: string;
+  JWT_REFRESH_EXPIRES_IN: string;
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
+  GEMINI_API_KEY: string;
 }
 
 const getEnv = (): EnvConfig => {
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
-  const NODE_ENV = process.env.NODE_ENV || "development";
-  const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/smartcook_db";
+  const NODE_ENV = (process.env.NODE_ENV as "development" | "production" | "test") || "development";
+  const MONGODB_URI =
+    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/smartcook_db";
   const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
   const RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS
     ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-    : 15 * 60 * 1000; // 15 mins
+    : 15 * 60 * 1000;
   const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX
     ? parseInt(process.env.RATE_LIMIT_MAX, 10)
     : 100;
+
+  const JWT_SECRET =
+    process.env.JWT_SECRET || "smartcook_default_jwt_secret_change_in_production";
+  const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
+  const JWT_REFRESH_SECRET =
+    process.env.JWT_REFRESH_SECRET || "smartcook_default_refresh_secret_change_in_production";
+  const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+
+  const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+  const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
+  const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
   return {
     PORT,
@@ -28,7 +50,16 @@ const getEnv = (): EnvConfig => {
     CORS_ORIGIN,
     RATE_LIMIT_WINDOW_MS,
     RATE_LIMIT_MAX,
+    JWT_SECRET,
+    JWT_EXPIRES_IN,
+    JWT_REFRESH_SECRET,
+    JWT_REFRESH_EXPIRES_IN,
+    CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET,
+    GEMINI_API_KEY,
   };
 };
 
 export const env = getEnv();
+export default env;
