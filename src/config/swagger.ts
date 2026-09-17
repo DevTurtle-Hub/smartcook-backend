@@ -7,9 +7,10 @@ const options: swaggerJSDoc.Options = {
     info: {
       title: "SmartCook Backend API Documentation",
       version: "1.0.0",
-      description: "Tài liệu API chính thức cho hệ thống SmartCook Backend",
+      description:
+        "Tài liệu API chính thức cho hệ sinh thái SmartCook (Mobile App & Web Admin)",
       contact: {
-        name: "SmartCook Dev Team",
+        name: "SmartCook Engineering Team",
       },
     },
     servers: [
@@ -24,11 +25,14 @@ const options: swaggerJSDoc.Options = {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
+          description: "Enter your JWT Bearer token to authorize requests",
         },
       },
     },
   },
   apis: [
+    "./src/docs/*.swagger.ts",
+    "./dist/docs/*.swagger.js",
     "./src/routes/*.ts",
     "./dist/routes/*.js",
   ],
