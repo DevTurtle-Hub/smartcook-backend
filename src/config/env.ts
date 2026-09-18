@@ -15,6 +15,7 @@ interface EnvConfig {
   CLOUDINARY_API_KEY: string;
   CLOUDINARY_API_SECRET: string;
   GEMINI_API_KEY: string;
+  GOOGLE_CLIENT_ID: string;
 }
 
 const getEnv = (): EnvConfig => {
@@ -42,6 +43,7 @@ const getEnv = (): EnvConfig => {
   const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 
   return {
     PORT,
@@ -58,6 +60,7 @@ const getEnv = (): EnvConfig => {
     CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET,
     GEMINI_API_KEY,
+    GOOGLE_CLIENT_ID,
   };
 };
 
