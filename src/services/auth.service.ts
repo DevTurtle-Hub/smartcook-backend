@@ -1,11 +1,14 @@
+import { OAuth2Client } from "google-auth-library";
 import { userRepository } from "../repositories/user.repository";
 import { IUser, IUserPreferences } from "../models/User";
 import { JwtHelper, AuthTokens } from "../utils/jwt";
+import { env } from "../config/env";
 import {
   ConflictError,
   UnauthorizedError,
   NotFoundError,
   ForbiddenError,
+  InternalServerError,
 } from "../utils/errors";
 
 export interface RegisterDTO {
@@ -82,6 +85,87 @@ export class AuthService {
     const isMatch = await user.comparePassword(data.password || "");
     if (!isMatch) {
       throw new UnauthorizedError("Invalid email or password");
+    }
+
+    const tokens = JwtHelper.generateTokens({
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    await userRepository.updateRefreshToken(
+      user._id.toString(),
+      tokens.refreshToken
+    );
+
+    return {
+      user: this.formatUserResponse(user),
+      tokens,
+    };
+  }
+
+  async loginWithGoogle(idToken: string): Promise<AuthResponse> {
+    if (!env.GOOGLE_CLIENT_ID) {
+      throw new InternalServerError("Google OAuth Client ID is not configured on the server");
+    }
+
+    let payload;
+    try {
+      const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (error: any) {
+      throw new UnauthorizedError(`Invalid Google ID Token: ${error.message || "Verification failed"}`);
+    }
+
+    if (!payload || !payload.email) {
+      throw new UnauthorizedError("Google ID Token does not contain a valid email");
+    }
+
+    const { sub: googleId, email, given_name, family_name, name, picture } = payload;
+
+    // 1. Try finding by googleId
+    let user = await userRepository.findByGoogleId(googleId);
+
+    if (!user) {
+      // 2. Try finding by email (Account Linking)
+      const existingEmailUser = await userRepository.findByEmail(email);
+
+      if (existingEmailUser) {
+        user = await userRepository.linkGoogleId(
+          existingEmailUser._id.toString(),
+          googleId,
+          !existingEmailUser.avatar ? picture : undefined
+        );
+      } else {
+        // 3. Create new user with Google Auth
+        const firstName = given_name || name?.split(" ")[0] || "User";
+        const lastName = family_name || name?.split(" ").slice(1).join(" ") || "";
+
+        user = await userRepository.create({
+          firstName,
+          lastName,
+          email: email.toLowerCase().trim(),
+          googleId,
+          authType: "google",
+          avatar: picture || "",
+          level: "Tập sự",
+          chefExp: 0,
+        });
+      }
+    }
+
+    if (!user) {
+      throw new UnauthorizedError("Failed to authenticate with Google");
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenError(
+        "Your account has been deactivated. Please contact support."
+      );
     }
 
     const tokens = JwtHelper.generateTokens({

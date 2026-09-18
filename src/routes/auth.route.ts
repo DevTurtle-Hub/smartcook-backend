@@ -5,6 +5,7 @@ import { authenticate } from "../middlewares/auth";
 import {
   registerSchema,
   loginSchema,
+  googleAuthSchema,
   refreshTokenSchema,
   onboardingSurveySchema,
   updateProfileSchema,
@@ -15,6 +16,7 @@ const router = Router();
 // Public Authentication Endpoints
 router.post("/register", validate(registerSchema), authController.register);
 router.post("/login", validate(loginSchema), authController.login);
+router.post("/google", validate(googleAuthSchema), authController.googleLogin);
 router.post("/refresh-token", validate(refreshTokenSchema), authController.refreshToken);
 
 // Protected User Profile & Session Endpoints

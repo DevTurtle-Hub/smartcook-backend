@@ -35,6 +35,13 @@ export const refreshTokenSchema = Joi.object({
   }),
 });
 
+export const googleAuthSchema = Joi.object({
+  idToken: Joi.string().required().messages({
+    "string.empty": "Google ID Token cannot be empty",
+    "any.required": "Google ID Token is required",
+  }),
+});
+
 export const onboardingSurveySchema = Joi.object({
   portion: Joi.string().valid("1", "2", "3-4", "5+").optional().messages({
     "any.only": "Portion must be one of ['1', '2', '3-4', '5+']",

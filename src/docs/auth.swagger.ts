@@ -194,6 +194,52 @@
 
 /**
  * @swagger
+ * /auth/google:
+ *   post:
+ *     summary: Authenticate with Google ID Token (Login / Register)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: OpenID Connect ID Token obtained from Google Sign-In SDK
+ *                 example: "eyJhbGciOiJSUzI1NiIsImtpZCI6IjEyMyJ9..."
+ *     responses:
+ *       200:
+ *         description: Google authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Google authentication successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/UserResponse'
+ *                     tokens:
+ *                       $ref: '#/components/schemas/AuthTokens'
+ *       400:
+ *         description: Google ID Token is missing or invalid format
+ *       401:
+ *         description: Invalid or expired Google ID Token
+ */
+
+/**
+ * @swagger
  * /auth/refresh-token:
  *   post:
  *     summary: Refresh JWT Access Token using Refresh Token (Rotation Protected)
