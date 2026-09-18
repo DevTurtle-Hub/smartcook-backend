@@ -314,6 +314,172 @@
         "description": "Đăng xuất và thu hồi Refresh Token trên server."
       },
       "response": []
+    },
+    {
+      "name": "8. Get Categories (Danh sách danh mục món ăn)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/categories",
+          "host": ["{{base_url}}"],
+          "path": ["categories"]
+        },
+        "description": "Lấy danh sách các danh mục món ăn (Gia đình, Healthy, Nấu nhanh < 20p, Ăn chay, Món Việt...)"
+      },
+      "response": []
+    },
+    {
+      "name": "9. Search Ingredients (Tìm kiếm & Lọc nguyên liệu chuẩn)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ingredients?search=ga&category=meat",
+          "host": ["{{base_url}}"],
+          "path": ["ingredients"],
+          "query": [
+            { "key": "search", "value": "ga" },
+            { "key": "category", "value": "meat" }
+          ]
+        },
+        "description": "Tìm kiếm nguyên liệu theo tên, từ đồng nghĩa hoặc theo 14 nhóm danh mục."
+      },
+      "response": []
+    },
+    {
+      "name": "10. Get My Fridge (Xem nguyên liệu trong tủ lạnh)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/fridge/my-fridge",
+          "host": ["{{base_url}}"],
+          "path": ["fridge", "my-fridge"]
+        },
+        "description": "Lấy danh sách nguyên liệu người dùng đang có trong tủ lạnh / ngăn đông / tủ khô."
+      },
+      "response": []
+    },
+    {
+      "name": "11. Add Item to Fridge (Thêm đồ vào tủ lạnh)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Đùi gà\",\n  \"amount\": \"500g\",\n  \"category\": \"meat\",\n  \"storageLocation\": \"chilled\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/fridge/items",
+          "host": ["{{base_url}}"],
+          "path": ["fridge", "items"]
+        },
+        "description": "Thêm một nguyên liệu mới vào tủ lạnh."
+      },
+      "response": []
+    },
+    {
+      "name": "12. Discover Recipes (Khám phá & Lọc công thức)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/recipes?category=family&maxMinutes=30",
+          "host": ["{{base_url}}"],
+          "path": ["recipes"],
+          "query": [
+            { "key": "category", "value": "family" },
+            { "key": "maxMinutes", "value": "30" }
+          ]
+        },
+        "description": "Khám phá danh sách công thức, lọc theo danh mục, thời gian nấu, độ khó và tìm kiếm."
+      },
+      "response": []
+    },
+    {
+      "name": "13. Smart Fridge Match (Gợi ý món ăn theo % khớp tủ lạnh)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/recipes/fridge-match?limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["recipes", "fridge-match"],
+          "query": [
+            { "key": "limit", "value": "10" }
+          ]
+        },
+        "description": "Thuật toán so khớp nguyên liệu trong tủ lạnh với công thức món ăn, xếp hạng các món nấu được ngay lên đầu."
+      },
+      "response": []
+    },
+    {
+      "name": "14. Toggle Favorite Recipe (Yêu thích món ăn)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/recipes/{{recipe_id}}/favorite",
+          "host": ["{{base_url}}"],
+          "path": ["recipes", "{{recipe_id}}", "favorite"]
+        },
+        "description": "Bật / tắt trạng thái yêu thích của một món ăn cho tài khoản hiện tại."
+      },
+      "response": []
     }
   ]
 }
+

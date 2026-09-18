@@ -359,32 +359,72 @@ Sử dụng **Vite + React + TypeScript + Tailwind CSS** kết nối chung REST 
 
 ## 6. Lộ Trình Triển Khai Chi Tiết (Implementation Phases)
 
-### Giai đoạn 1: Khởi Tạo Cấu Trúc Backend & Base Authentication
-- Cài đặt các thư viện cần thiết: `mongoose`, `jsonwebtoken`, `bcryptjs`, `cors`, `helmet`, `joi`, `dotenv`, `@google/genai` (hoặc `@google/generative-ai`), `multer`, `cloudinary`.
-- Thiết lập chuẩn TypeScript, kết nối MongoDB an toàn, cấu hình biến môi trường `.env`.
-- Triển khai Bộ xử lý lỗi toàn cục (`GlobalErrorHandler`) và chuẩn hoá định dạng phản hồi API (`ApiResponse`).
-- Xây dựng Module Auth: Đăng ký, Đăng nhập, Refresh Token, Cập nhật khảo sát khẩu vị Onboarding.
+### Giai đoạn 1: Khởi Tạo Cấu Trúc Backend & Base Authentication [ĐÃ HOÀN THÀNH 100%]
+- [x] Cài đặt các thư viện cần thiết: `mongoose`, `jsonwebtoken`, `bcryptjs`, `cors`, `helmet`, `joi`, `dotenv`, `@google/genai`, `multer`, `cloudinary`, `google-auth-library`.
+- [x] Thiết lập chuẩn TypeScript, kết nối MongoDB Atlas an toàn, cấu hình biến môi trường `.env` & `.env.example`.
+- [x] Triển khai Bộ xử lý lỗi toàn cục (`GlobalErrorHandler`), custom error classes và chuẩn hoá định dạng phản hồi API (`ApiResponse`, `asyncHandler`).
+- [x] Xây dựng Module Auth hoàn chỉnh:
+  - [x] Đăng ký (`POST /auth/register`)
+  - [x] Đăng nhập (`POST /auth/login`)
+  - [x] Đăng nhập bằng Google (`POST /auth/google` - OpenID Connect & Account Linking)
+  - [x] Cấp lại token xoay vòng bảo mật (`POST /auth/refresh-token` - RFC 7519 `jti` Rotation Protection)
+  - [x] Đăng xuất thu hồi token (`POST /auth/logout`)
+  - [x] Lấy thông tin cá nhân (`GET /auth/me`)
+  - [x] Cập nhật thông tin profile (`PUT /auth/profile`)
+  - [x] Cập nhật khảo sát khẩu vị Onboarding (`POST /auth/survey`)
+- [x] Tách module tài liệu OpenAPI / Swagger (`src/docs/auth.swagger.ts`, `src/docs/health.swagger.ts`).
+- [x] Tạo bộ Postman Collection hoàn chỉnh (`SmartCook_API_Collection.json`) kèm auto-save token.
+- [x] Đã chạy pass toàn bộ bộ test tích hợp và merge vào nhánh `main`.
 
-### Giai đoạn 2: Quản Lý Nguyên Liệu, Tủ Lạnh & Công Thức Món Ăn
-- Xây dựng Schemas & Repositories cho `categories`, `ingredients`, `recipes`, `user_fridges`.
-- Viết API CRUD Món ăn cho Web Admin (hỗ trợ upload ảnh Cloudinary).
-- Viết API lấy danh sách công thức cho Mobile (Search, Filter đa tiêu chí, Phân trang 10 món/trang).
-- Triển khai thuật toán tính `% khớp tủ lạnh` (`fridgeMatchPercent`) trên Backend dựa trên danh sách nguyên liệu trong tủ lạnh của người dùng.
+---
+
+### Giai đoạn 2: Quản Lý Nguyên Liệu, Tủ Lạnh & Công Thức Món Ăn [ĐÃ HOÀN THÀNH 100%]
+- [x] **2.1. Module Danh Mục (Category Module)**:
+  - [x] Model `Category.ts` & Repository `category.repository.ts` (mã code, icon, tên, thứ tự hiển thị).
+  - [x] Service, Controller, Route `GET /categories` (dành cho Mobile tabs filter) & CRUD dành cho Admin.
+  - [x] Swagger docs `src/docs/category.swagger.ts`.
+- [x] **2.2. Module Thư Viện Nguyên Liệu Chuẩn (Ingredients Module)**:
+  - [x] Model `Ingredient.ts` & Repository `ingredient.repository.ts` (14 nhóm nguyên liệu tủ lạnh, aliases từ đồng nghĩa, đơn vị đo, giá tham khảo).
+  - [x] Script Seed Data `src/data/seedIngredients.ts`: Nạp sẵn 58 nguyên liệu chuẩn từ `FridgeView.tsx` vào MongoDB Atlas.
+  - [x] API tìm kiếm nguyên liệu theo từ khoá, lọc theo nhóm (`GET /ingredients?category=...&search=...`).
+  - [x] Swagger docs `src/docs/ingredient.swagger.ts`.
+- [x] **2.3. Module Tủ Lạnh Thông Minh Người Dùng (User Fridge Module)**:
+  - [x] Model `UserFridge.ts` & Repository `fridge.repository.ts` (lưu trữ danh sách nguyên liệu trong tủ lạnh của từng user, ngày thêm, hạn sử dụng, số lượng, đơn vị, trạng thái).
+  - [x] API lấy đồ trong tủ lạnh (`GET /fridge/my-fridge`).
+  - [x] API thêm/sửa/xoá nguyên liệu vào tủ lạnh (`POST /fridge/items`, `PUT /fridge/items/:id`, `DELETE /fridge/items/:id`).
+  - [x] API dọn sạch tủ lạnh (`DELETE /fridge/clear`).
+  - [x] Swagger docs `src/docs/fridge.swagger.ts`.
+- [x] **2.4. Module Công Thức Món Ăn (Recipe Module)**:
+  - [x] Model `Recipe.ts` & Repository `recipe.repository.ts` (công thức, khẩu phần chuẩn `servingsCount`, mảng nguyên liệu `ingredients`, các bước nấu `steps` có `timerMinutes`, dinh dưỡng `nutrition`, độ khó, thời gian).
+  - [x] Script Seed Data `src/data/seedRecipes.ts`: Nạp 5 công thức món ăn chuẩn chất lượng cao.
+  - [x] API danh sách công thức: Phân trang, tìm kiếm full-text, lọc theo danh mục, thời gian nấu, độ khó (`GET /recipes`).
+  - [x] API chi tiết công thức (`GET /recipes/:id`).
+  - [x] API công thức yêu thích (`POST /recipes/:id/favorite`).
+  - [x] Swagger docs `src/docs/recipe.swagger.ts`.
+- [x] **2.5. Thuật Toán Xếp Hạng & Khớp Tủ Lạnh (Fridge Match Ranking Algorithm)**:
+  - [x] Xây dựng service tính toán tỉ lệ phần trăm trùng khớp (`fridgeMatchPercent = (số nguyên liệu có sẵn / tổng nguyên liệu) * 100%`) hỗ trợ mapping từ đồng nghĩa (aliases) & normalized Vietnamese.
+  - [x] API gợi ý món ăn tối ưu từ tủ lạnh (`GET /recipes/fridge-match`): Tự động sắp xếp các món có tỉ lệ khớp cao nhất lên đầu, liệt kê rõ nguyên liệu đã có và nguyên liệu cần mua thêm.
+- [x] **2.6. Tích hợp & Kiểm thử**:
+  - [x] Chạy test tích hợp tự động 5/5 kịch bản thành công 100%.
+  - [x] Bổ sung 7 endpoints mới vào `SmartCook_API_Collection.json`.
+
+---
 
 ### Giai đoạn 3: Tích Hợp AI Engine & GeoSpatial Siêu Thị
-- Xây dựng Service tích hợp Gemini 1.5 Flash Vision.
-- Endpoint `/api/v1/ai/scan`: Tiếp nhận ảnh -> Phân tích -> Trả về danh sách nguyên liệu, toạ độ pins, món ăn đề xuất -> Lưu `scan_histories`.
-- Cấu hình chỉ mục `2dsphere` cho `stores`. Viết Endpoint `/api/v1/stores/nearby` nhận toạ độ `latitude, longitude` từ Mobile và trả về siêu thị gần nhất kèm khoảng cách km.
+- [ ] Xây dựng Service tích hợp Gemini AI SDK (Model `gemini-3.6-flash`).
+- [ ] Endpoint `/api/v1/ai/scan`: Tiếp nhận ảnh -> Upload Cloudinary -> Gemini Vision -> Trả về danh sách nguyên liệu, toạ độ pins, món ăn đề xuất -> Lưu `scan_histories`.
+- [ ] Endpoint `/api/v1/ai/generate-recipe`: Sinh công thức sáng tạo từ nguyên liệu tủ lạnh đã chọn kết hợp khẩu vị survey.
+- [ ] Cấu hình chỉ mục `2dsphere` cho `stores`. Viết Endpoint `/api/v1/stores/nearby` nhận toạ độ `latitude, longitude` từ Mobile và trả về siêu thị gần nhất kèm khoảng cách km.
 
 ### Giai đoạn 4: Kế Hoạch Bữa Ăn, Giỏ Hàng & Gamification Nấu Ăn
-- Hoàn thiện API `meal_plans` (lịch ăn tuần 7 ngày) và `cart_items` (danh sách đi chợ).
-- Hoàn thiện API `cooking_histories` (ghi nhận thời gian nấu, cộng 50 XP cho người dùng, lưu ảnh thành phẩm).
-- Hoàn thiện API `reviews` (bình luận, đánh giá sao).
+- [ ] Hoàn thiện API `meal_plans` (lịch ăn tuần 7 ngày) và `cart_items` (danh sách đi chợ).
+- [ ] Hoàn thiện API `cooking_histories` (ghi nhận thời gian nấu, cộng 50 XP cho người dùng, lưu ảnh thành phẩm).
+- [ ] Hoàn thiện API `reviews` (bình luận, đánh giá sao).
 
 ### Giai đoạn 5: Khởi Tạo & Phát Triển Web Admin (`smartcook-web`)
-- Khởi tạo repo `smartcook-web` bằng Vite + React + TypeScript + Tailwind CSS.
-- Xây dựng UI Dashboard, Quản lý công thức, Quản lý siêu thị, Quản lý danh mục.
-- Kết nối API Backend và kiểm thử toàn diện End-to-End.
+- [ ] Khởi tạo repo `smartcook-web` bằng Vite + React + TypeScript + Tailwind CSS.
+- [ ] Xây dựng UI Dashboard, Quản lý công thức, Quản lý siêu thị, Quản lý danh mục.
+- [ ] Kết nối API Backend và kiểm thử toàn diện End-to-End.
 
 ---
 
