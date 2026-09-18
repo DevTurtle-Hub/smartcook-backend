@@ -17,6 +17,20 @@ export class UserRepository {
     return query.exec();
   }
 
+  async findByGoogleId(googleId: string): Promise<IUser | null> {
+    return User.findOne({ googleId }).exec();
+  }
+
+  async linkGoogleId(userId: string, googleId: string, avatar?: string): Promise<IUser | null> {
+    const updatePayload: Record<string, any> = { googleId };
+    if (avatar) {
+      updatePayload.avatar = avatar;
+    }
+    return User.findByIdAndUpdate(userId, updatePayload, {
+      returnDocument: "after",
+    }).exec();
+  }
+
   async create(userData: Partial<IUser>): Promise<IUser> {
     const user = new User(userData);
     return user.save();

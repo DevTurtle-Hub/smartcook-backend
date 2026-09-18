@@ -5,6 +5,7 @@ export type PortionType = "1" | "2" | "3-4" | "5+";
 export type HealthGoalType = "healthy" | "loss" | "muscle" | "budget";
 export type CookingTimeType = "quick" | "medium" | "standard" | "slow";
 export type UserRole = "user" | "admin";
+export type AuthType = "local" | "google" | "facebook";
 
 export interface IUserPreferences {
   hasCompletedSurvey: boolean;
@@ -23,6 +24,8 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   password?: string;
+  googleId?: string;
+  authType: AuthType;
   avatar?: string;
   role: UserRole;
   chefExp: number;
@@ -99,9 +102,25 @@ const UserSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: [
+        function (this: any) {
+          return this.authType === "local";
+        },
+        "Password is required for local authentication",
+      ],
       minlength: [6, "Password must be at least 6 characters"],
       select: false, // Do not return password by default
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    authType: {
+      type: String,
+      enum: ["local", "google", "facebook"],
+      default: "local",
     },
     avatar: {
       type: String,
