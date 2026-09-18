@@ -1,0 +1,319 @@
+{
+  "info": {
+    "_postman_id": "smartcook-api-collection-v1",
+    "name": "SmartCook Backend API",
+    "description": "Postman Collection hoàn chỉnh cho các API hệ thống SmartCook v1 (Auth, Profile, Survey, Health)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. System Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Kiểm tra tình trạng server và kết nối MongoDB Atlas"
+      },
+      "response": []
+    },
+    {
+      "name": "1. Register (Đăng ký)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    const json = pm.response.json();",
+              "    if (json.data && json.data.tokens) {",
+              "        pm.collectionVariables.set('access_token', json.data.tokens.accessToken);",
+              "        pm.collectionVariables.set('refresh_token', json.data.tokens.refreshToken);",
+              "        console.log('Tokens saved to collection variables automatically!');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Văn Lợi\",\n  \"lastName\": \"Đinh\",\n  \"email\": \"loi.dinh@smartcook.vn\",\n  \"password\": \"SmartCook@2026\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/register",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Tạo tài khoản mới. Tự động lưu access_token và refresh_token vào biến collection."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Login (Đăng nhập)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    if (json.data && json.data.tokens) {",
+              "        pm.collectionVariables.set('access_token', json.data.tokens.accessToken);",
+              "        pm.collectionVariables.set('refresh_token', json.data.tokens.refreshToken);",
+              "        console.log('Login tokens saved to collection variables!');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"loi.dinh@smartcook.vn\",\n  \"password\": \"SmartCook@2026\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Đăng nhập và tự động cập nhật access_token và refresh_token mới."
+      },
+      "response": []
+    },
+    {
+      "name": "2.1 Google Sign-In (Đăng nhập bằng Google)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    if (json.data && json.data.tokens) {",
+              "        pm.collectionVariables.set('access_token', json.data.tokens.accessToken);",
+              "        pm.collectionVariables.set('refresh_token', json.data.tokens.refreshToken);",
+              "        console.log('Google Auth tokens saved to collection variables!');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"PASTE_YOUR_GOOGLE_ID_TOKEN_HERE\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/google",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "google"]
+        },
+        "description": "Gửi idToken nhận được từ Google Sign-In SDK lên backend để xác thực và nhận JWT tokens."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Get Profile (Thông tin cá nhân)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auth/me",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "me"]
+        },
+        "description": "Lấy thông tin profile, cấp bậc đầu bếp, kinh nghiệm XP và khẩu vị cá nhân."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Save Onboarding Survey (Lưu khẩu vị)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"portion\": \"3-4\",\n  \"cuisines\": [\"vietnamese\", \"healthy\", \"quick\"],\n  \"healthGoal\": \"healthy\",\n  \"restrictions\": [\"no-spicy\"],\n  \"tasteProfile\": [\"dam-da\", \"thanh-dam\"],\n  \"cookingTime\": \"medium\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/survey",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "survey"]
+        },
+        "description": "Lưu 6 câu hỏi khảo sát khẩu vị Onboarding từ Mobile App."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Update Profile (Cập nhật hồ sơ)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Văn Lợi\",\n  \"lastName\": \"Đinh (Master Chef)\",\n  \"avatar\": \"https://res.cloudinary.com/ynikavd2/image/upload/sample.jpg\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/profile",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "profile"]
+        },
+        "description": "Cập nhật tên và ảnh đại diện."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Refresh Token (Xoay vòng Token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    if (json.data && json.data.accessToken) {",
+              "        pm.collectionVariables.set('access_token', json.data.accessToken);",
+              "        pm.collectionVariables.set('refresh_token', json.data.refreshToken);",
+              "        console.log('Rotated tokens updated in collection variables!');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/refresh-token",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "refresh-token"]
+        },
+        "description": "Lấy cặp Access Token + Refresh Token mới khi phiên cũ hết hạn."
+      },
+      "response": []
+    },
+    {
+      "name": "7. Logout (Đăng xuất)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auth/logout",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "logout"]
+        },
+        "description": "Đăng xuất và thu hồi Refresh Token trên server."
+      },
+      "response": []
+    }
+  ]
+}

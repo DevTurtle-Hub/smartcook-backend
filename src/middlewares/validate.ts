@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import Joi from "joi";
-import { AppError } from "../utils/errors";
+import { BadRequestError } from "../utils/errors";
 
 export const validate = (
   schema: Joi.ObjectSchema,
@@ -13,8 +13,11 @@ export const validate = (
     });
 
     if (error) {
-      const errorMessage = error.details.map((detail) => detail.message).join(", ");
-      next(new AppError(errorMessage, 400));
+      const formattedErrors = error.details.map((detail) => ({
+        field: detail.path.join("."),
+        message: detail.message.replace(/['"]/g, ""),
+      }));
+      next(new BadRequestError("Input validation error", formattedErrors));
       return;
     }
 
