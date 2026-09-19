@@ -9,6 +9,7 @@ export interface IRecipeIngredient {
   amount: string;
   isOptional?: boolean;
   icon?: string;
+  unit?: string;
 }
 
 export interface IRecipeStep {
@@ -17,6 +18,7 @@ export interface IRecipeStep {
   description: string;
   timerMinutes?: number;
   tip?: string;
+  instruction?: string;
 }
 
 export interface IRecipeNutrition {
@@ -27,6 +29,9 @@ export interface IRecipeNutrition {
   fiber: string;
   sodium?: string;
   advice: string;
+  proteinGrams?: number;
+  carbsGrams?: number;
+  fatGrams?: number;
 }
 
 export interface IRecipe extends Document {
@@ -53,6 +58,12 @@ export interface IRecipe extends Document {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Virtual fields (tương thích Web Client & DTO)
+  stepsCount?: number;
+  cookingTimeMinutes?: number;
+  ratingAverage?: number;
+  ratingsCount?: number;
+  category?: string;
 }
 
 const RecipeIngredientSchema = new Schema<IRecipeIngredient>(
