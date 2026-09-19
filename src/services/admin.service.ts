@@ -175,7 +175,7 @@ export class AdminService {
     const user = await User.findByIdAndUpdate(
       userId,
       { isActive },
-      { new: true }
+      { returnDocument: "after" }
     ).select("-password");
 
     if (!user) {
@@ -192,7 +192,7 @@ export class AdminService {
     const user = await User.findByIdAndUpdate(
       userId,
       { role },
-      { new: true }
+      { returnDocument: "after" }
     ).select("-password");
 
     if (!user) {
