@@ -5,6 +5,7 @@ import categoryRoutes from "./category.route";
 import ingredientRoutes from "./ingredient.route";
 import fridgeRoutes from "./fridge.route";
 import recipeRoutes from "./recipe.route";
+import adminRoutes from "./admin.route";
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use("/categories", categoryRoutes);
 router.use("/ingredients", ingredientRoutes);
 router.use("/fridge", fridgeRoutes);
 router.use("/recipes", recipeRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;
