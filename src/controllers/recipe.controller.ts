@@ -58,9 +58,11 @@ export class RecipeController {
   });
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const isUserRole = req.user?.role !== "admin";
     const recipeData = {
       ...req.body,
       authorId: req.user?._id,
+      author: isUserRole ? (req.user?.fullName || req.body.author || "Đầu bếp tại gia") : (req.body.author || req.user?.fullName),
     };
     const recipe = await recipeService.createRecipe(recipeData);
     ApiResponse.created(res, recipe, "Recipe created successfully");
@@ -68,13 +70,13 @@ export class RecipeController {
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
-    const recipe = await recipeService.updateRecipe(id, req.body);
+    const recipe = await recipeService.updateRecipe(id, req.body, req.user);
     ApiResponse.success(res, recipe, "Recipe updated successfully");
   });
 
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
-    await recipeService.deleteRecipe(id);
+    await recipeService.deleteRecipe(id, req.user);
     ApiResponse.success(res, null, "Recipe deleted successfully");
   });
 }

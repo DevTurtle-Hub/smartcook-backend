@@ -22,11 +22,10 @@ router.get("/:id", optionalAuthenticate, recipeController.getById);
 // 3. User Actions (Protected)
 router.post("/:id/favorite", authenticate, recipeController.toggleFavorite);
 
-// 4. Admin / Chef Management Endpoints
+// 4. Authenticated / Chef & Admin Recipe Management Endpoints
 router.post(
   "/",
   authenticate,
-  authorize("admin"),
   uploadSingleImage,
   processRecipeFormData,
   validate(createRecipeSchema),
@@ -36,7 +35,6 @@ router.post(
 router.put(
   "/:id",
   authenticate,
-  authorize("admin"),
   uploadSingleImage,
   processRecipeFormData,
   validate(updateRecipeSchema),
@@ -46,7 +44,6 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorize("admin"),
   recipeController.delete
 );
 

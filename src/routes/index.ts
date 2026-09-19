@@ -6,6 +6,7 @@ import ingredientRoutes from "./ingredient.route";
 import fridgeRoutes from "./fridge.route";
 import recipeRoutes from "./recipe.route";
 import adminRoutes from "./admin.route";
+import cookingHistoryRoutes from "./cookingHistory.route";
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use("/ingredients", ingredientRoutes);
 router.use("/fridge", fridgeRoutes);
 router.use("/recipes", recipeRoutes);
 router.use("/admin", adminRoutes);
+router.use("/cooking-history", cookingHistoryRoutes);
 
 export default router;
