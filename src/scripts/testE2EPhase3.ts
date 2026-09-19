@@ -8,7 +8,7 @@ const runE2ETests = async () => {
   console.log("===============================================================\n");
 
   let server: Server;
-  let baseUrl: string;
+  let baseUrl = "";
 
   try {
     // 1. Kết nối DB
