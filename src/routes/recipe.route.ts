@@ -7,6 +7,9 @@ import {
   updateRecipeSchema,
 } from "../validators/recipe.validator";
 
+import { uploadSingleImage } from "../middlewares/upload";
+import { processRecipeFormData } from "../middlewares/recipeUpload";
+
 const router = Router();
 
 // 1. Fridge Match Ranking Endpoint (Protected - relies on user's fridge items)
@@ -24,6 +27,8 @@ router.post(
   "/",
   authenticate,
   authorize("admin"),
+  uploadSingleImage,
+  processRecipeFormData,
   validate(createRecipeSchema),
   recipeController.create
 );
@@ -32,6 +37,8 @@ router.put(
   "/:id",
   authenticate,
   authorize("admin"),
+  uploadSingleImage,
+  processRecipeFormData,
   validate(updateRecipeSchema),
   recipeController.update
 );
