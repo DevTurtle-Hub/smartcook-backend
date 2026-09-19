@@ -5,7 +5,7 @@ import { ingredientRepository } from "../repositories/ingredient.repository";
 import { IRecipe } from "../models/Recipe";
 import { INITIAL_RECIPES } from "../data/seedRecipes";
 import { normalizeVietnamese } from "../utils/text";
-import { NotFoundError } from "../utils/errors";
+import { NotFoundError, ForbiddenError } from "../utils/errors";
 
 export interface MatchedRecipeItem {
   recipe: IRecipe;
@@ -226,20 +226,41 @@ export class RecipeService {
 
   async updateRecipe(
     id: string,
-    data: Partial<IRecipe>
+    data: Partial<IRecipe>,
+    currentUser?: any
   ): Promise<IRecipe> {
-    const updated = await recipeRepository.update(id, data);
-    if (!updated) {
+    const existing = await recipeRepository.findById(id);
+    if (!existing) {
       throw new NotFoundError("Recipe not found");
     }
-    return updated;
+
+    if (
+      currentUser &&
+      currentUser.role !== "admin" &&
+      existing.authorId?.toString() !== currentUser._id.toString()
+    ) {
+      throw new ForbiddenError("You are not authorized to update this recipe");
+    }
+
+    const updated = await recipeRepository.update(id, data);
+    return updated!;
   }
 
-  async deleteRecipe(id: string): Promise<void> {
-    const deleted = await recipeRepository.delete(id);
-    if (!deleted) {
+  async deleteRecipe(id: string, currentUser?: any): Promise<void> {
+    const existing = await recipeRepository.findById(id);
+    if (!existing) {
       throw new NotFoundError("Recipe not found");
     }
+
+    if (
+      currentUser &&
+      currentUser.role !== "admin" &&
+      existing.authorId?.toString() !== currentUser._id.toString()
+    ) {
+      throw new ForbiddenError("You are not authorized to delete this recipe");
+    }
+
+    await recipeRepository.delete(id);
   }
 
   async seedRecipes(): Promise<void> {
