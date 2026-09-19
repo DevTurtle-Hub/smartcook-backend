@@ -491,16 +491,16 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
 
 ---
 
-### Giai đoạn 4: Mở Quyền Tạo Recipe Cá Nhân & Lịch Sử Nấu Ăn (Chef XP +50 Level)
-- [ ] **4.1. Mở Quyền Tạo Công Thức Cho Người Dùng Đã Đăng Nhập (`POST /recipes`)**:
-  - [ ] Điều chỉnh middleware tại `POST /recipes`: Thay vì chỉ cho phép admin (`authorize('admin')`), cho phép tất cả người dùng đã đăng nhập (`authenticate`).
-  - [ ] Tự động gán `authorId = req.user._id` và `author = req.user.fullName` nếu là người dùng thường tạo món.
-  - [ ] Hỗ trợ upload ảnh công thức lên Cloudinary thư mục `smartcook/recipes`.
-  - [ ] Quyền sửa/xoá (`PUT/DELETE /recipes/:id`): Cho phép tác giả (`authorId == req.user._id`) hoặc Quản trị viên (`admin`).
-- [ ] **4.2. Module Lịch Sử Nấu Ăn & Gamification XP (`/api/v1/cooking-history`)**:
-  - [ ] Tạo Model `CookingHistory.ts` & TypeScript Interface khớp `CookingHistoryItem`.
-  - [ ] Tạo Repository `cookingHistory.repository.ts` & Service `cookingHistory.service.ts`.
-  - [ ] Triển khai Endpoint `POST /api/v1/cooking-history`:
+### Giai đoạn 4: Mở Quyền Tạo Recipe Cá Nhân & Lịch Sử Nấu Ăn (Chef XP +50 Level) [ĐÃ HOÀN THÀNH 100%]
+- [x] **4.1. Mở Quyền Tạo Công Thức Cho Người Dùng Đã Đăng Nhập (`POST /recipes`)**:
+  - [x] Điều chỉnh middleware tại `POST /recipes`: Thay vì chỉ cho phép admin (`authorize('admin')`), cho phép tất cả người dùng đã đăng nhập (`authenticate`).
+  - [x] Tự động gán `authorId = req.user._id` và `author = req.user.fullName` nếu là người dùng thường tạo món.
+  - [x] Hỗ trợ upload ảnh công thức lên Cloudinary thư mục `smartcook/recipes`.
+  - [x] Quyền sửa/xoá (`PUT/DELETE /recipes/:id`): Cho phép tác giả (`authorId == req.user._id`) hoặc Quản trị viên (`admin`). Người dùng khác bị chặn mã 403 Forbidden.
+- [x] **4.2. Module Lịch Sử Nấu Ăn & Gamification XP (`/api/v1/cooking-history`)**:
+  - [x] Tạo Model `CookingHistory.ts` & TypeScript Interface khớp `CookingHistoryItem`.
+  - [x] Tạo Repository `cookingHistory.repository.ts` & Service `cookingHistory.service.ts`.
+  - [x] Triển khai Endpoint `POST /api/v1/cooking-history`:
     - Ghi nhận món ăn vừa hoàn thành (`recipeId`, `recipeName`, `image`, `durationMinutes`, `servings`, `usedIngredients`, `calories`, `rating`).
     - Tự động cộng **+50 XP** vào `chefExp` của người dùng.
     - Kiểm tra và tự động thăng cấp bậc đầu bếp (`level`):
@@ -508,9 +508,10 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
       - 151 - 400 XP: "Bếp gia đình"
       - 401 - 800 XP: "Đầu bếp tài ba"
       - 801+ XP: "Bếp trưởng"
-  - [ ] Triển khai Endpoint `GET /api/v1/cooking-history`: Lấy lịch sử nấu ăn của user đăng nhập (sắp xếp mới nhất trước).
-  - [ ] Triển khai Endpoint `DELETE /api/v1/cooking-history/:id`: Xoá một mục lịch sử nấu ăn.
-  - [ ] Viết Swagger docs `src/docs/cookingHistory.swagger.ts` và test script tích hợp.
+  - [x] Triển khai Endpoint `GET /api/v1/cooking-history`: Lấy lịch sử nấu ăn của user đăng nhập (sắp xếp mới nhất trước).
+  - [x] Triển khai Endpoint `DELETE /api/v1/cooking-history/:id`: Xoá một mục lịch sử nấu ăn của chính chủ (chặn user khác mã 403).
+  - [x] Viết Swagger docs `src/docs/cookingHistory.swagger.ts` và đăng ký route `/api/v1/cooking-history`.
+- [x] **Kiểm thử E2E Phase 4**: Chạy script `src/scripts/testE2EPhase4.ts` đạt kết quả 8/8 test passed 100%.
 
 ---
 

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test:e2e:phase3": "tsx src/scripts/testE2EPhase3.ts",
+    "test:e2e:phase4": "tsx src/scripts/testE2EPhase4.ts"
   },
   "keywords": [],
   "author": "",
