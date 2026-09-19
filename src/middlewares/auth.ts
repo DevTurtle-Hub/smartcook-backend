@@ -37,6 +37,29 @@ export const authenticate = async (
   }
 };
 
+export const optionalAuthenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      if (token) {
+        const decoded = JwtHelper.verifyAccessToken(token);
+        const user = await userRepository.findById(decoded.id);
+        if (user && user.isActive) {
+          req.user = user;
+        }
+      }
+    }
+  } catch (_err) {
+    // Silently continue for optional authentication
+  }
+  next();
+};
+
 export const authorize = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
@@ -55,4 +78,4 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
-export default { authenticate, authorize };
+export default { authenticate, optionalAuthenticate, authorize };

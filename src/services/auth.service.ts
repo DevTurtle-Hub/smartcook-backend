@@ -253,8 +253,10 @@ export class AuthService {
   }
 
   private formatUserResponse(user: IUser) {
+    const idStr = user._id.toString();
     return {
-      id: user._id.toString(),
+      _id: idStr,
+      id: idStr,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,

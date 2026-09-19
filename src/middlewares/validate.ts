@@ -21,7 +21,20 @@ export const validate = (
       return;
     }
 
-    req[property] = value;
+    if (property === "query") {
+      try {
+        req.query = value;
+      } catch {
+        Object.defineProperty(req, "query", {
+          value,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
+      }
+    } else {
+      req[property] = value;
+    }
     next();
   };
 };
