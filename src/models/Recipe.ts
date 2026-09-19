@@ -80,8 +80,17 @@ const RecipeIngredientSchema = new Schema<IRecipeIngredient>(
       default: "",
     },
   },
-  { _id: false }
+  {
+    _id: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+RecipeIngredientSchema.virtual("unit").get(function (this: IRecipeIngredient) {
+  const match = (this.amount || "").match(/[a-zA-ZÀ-ỹ]+/g);
+  return match ? match.join(" ") : "";
+});
 
 RecipeIngredientSchema.pre<IRecipeIngredient>("validate", function () {
   if (this.name && !this.normalizedName) {
@@ -115,8 +124,16 @@ const RecipeStepSchema = new Schema<IRecipeStep>(
       default: "",
     },
   },
-  { _id: false }
+  {
+    _id: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+RecipeStepSchema.virtual("instruction").get(function (this: IRecipeStep) {
+  return this.description;
+});
 
 const RecipeNutritionSchema = new Schema<IRecipeNutrition>(
   {
@@ -128,8 +145,24 @@ const RecipeNutritionSchema = new Schema<IRecipeNutrition>(
     sodium: { type: String, default: "0mg" },
     advice: { type: String, default: "" },
   },
-  { _id: false }
+  {
+    _id: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+RecipeNutritionSchema.virtual("proteinGrams").get(function (this: IRecipeNutrition) {
+  return parseInt(this.protein || "0", 10) || 0;
+});
+
+RecipeNutritionSchema.virtual("carbsGrams").get(function (this: IRecipeNutrition) {
+  return parseInt(this.carbs || "0", 10) || 0;
+});
+
+RecipeNutritionSchema.virtual("fatGrams").get(function (this: IRecipeNutrition) {
+  return parseInt(this.fat || "0", 10) || 0;
+});
 
 const RecipeSchema = new Schema<IRecipe>(
   {
@@ -249,12 +282,39 @@ const RecipeSchema = new Schema<IRecipe>(
         return ret;
       },
     },
+    toObject: {
+      virtuals: true,
+      transform: (_, ret: any) => {
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 
 // Virtual field for stepsCount
 RecipeSchema.virtual("stepsCount").get(function (this: IRecipe) {
   return this.steps ? this.steps.length : 0;
+});
+
+// Virtual field for cookingTimeMinutes (mapped to minutes)
+RecipeSchema.virtual("cookingTimeMinutes").get(function (this: IRecipe) {
+  return this.minutes;
+});
+
+// Virtual field for ratingAverage (mapped to rating)
+RecipeSchema.virtual("ratingAverage").get(function (this: IRecipe) {
+  return this.rating;
+});
+
+// Virtual field for ratingsCount (mapped to reviewCount)
+RecipeSchema.virtual("ratingsCount").get(function (this: IRecipe) {
+  return this.reviewCount;
+});
+
+// Virtual field for category (mapped to categoryCode)
+RecipeSchema.virtual("category").get(function (this: IRecipe) {
+  return this.categoryCode;
 });
 
 // Full-text search index on title, description, and tags
