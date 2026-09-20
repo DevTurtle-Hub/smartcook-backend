@@ -110,15 +110,26 @@ export class AuthService {
     }
 
     let payload;
-    try {
-      const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
-      const ticket = await client.verifyIdToken({
-        idToken,
-        audience: env.GOOGLE_CLIENT_ID,
-      });
-      payload = ticket.getPayload();
-    } catch (error: any) {
-      throw new UnauthorizedError(`Invalid Google ID Token: ${error.message || "Verification failed"}`);
+    if (process.env.NODE_ENV === "development" && idToken === "dev_mock_google_id_token") {
+      payload = {
+        sub: "google_mock_id_9999",
+        email: "google.tester@smartcook.com",
+        given_name: "Google",
+        family_name: "Tester",
+        name: "Google Tester",
+        picture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80",
+      };
+    } else {
+      try {
+        const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+          idToken,
+          audience: env.GOOGLE_CLIENT_ID,
+        });
+        payload = ticket.getPayload();
+      } catch (error: any) {
+        throw new UnauthorizedError(`Invalid Google ID Token: ${error.message || "Verification failed"}`);
+      }
     }
 
     if (!payload || !payload.email) {
