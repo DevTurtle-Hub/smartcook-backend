@@ -121,10 +121,16 @@ export class AuthService {
       };
     } else {
       try {
-        const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+        const client = new OAuth2Client();
+        const validAudiences = [
+          env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_IOS_CLIENT_ID,
+          process.env.GOOGLE_ANDROID_CLIENT_ID,
+        ].filter(Boolean) as string[];
+
         const ticket = await client.verifyIdToken({
           idToken,
-          audience: env.GOOGLE_CLIENT_ID,
+          audience: validAudiences.length === 1 ? validAudiences[0] : validAudiences,
         });
         payload = ticket.getPayload();
       } catch (error: any) {
