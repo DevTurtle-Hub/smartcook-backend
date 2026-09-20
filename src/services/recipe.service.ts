@@ -81,14 +81,16 @@ export class RecipeService {
       fridgeIngredientNames = fridge.items.map((it) => it.normalizedName);
     }
 
+    const recipeObj = (recipe as any).toObject ? (recipe as any).toObject() : recipe;
+
     // Annotate recipe ingredients with inFridge boolean
-    const annotatedIngredients = recipe.ingredients.map((ing) => {
-      const normIngName = ing.normalizedName || normalizeVietnamese(ing.name);
+    const annotatedIngredients = (recipeObj.ingredients || []).map((ing: any) => {
+      const normIngName = ing.normalizedName || normalizeVietnamese(ing.name || '');
       const inFridge = fridgeIngredientNames.some(
         (fridgeName) =>
           fridgeName.includes(normIngName) ||
           normIngName.includes(fridgeName) ||
-          normIngName.split(" ").some((word) => word.length > 2 && fridgeName.includes(word))
+          normIngName.split(" ").some((word: string) => word.length > 2 && fridgeName.includes(word))
       );
       return {
         ...ing,
@@ -96,14 +98,14 @@ export class RecipeService {
       };
     });
 
-    const matchedCount = annotatedIngredients.filter((i) => i.inFridge).length;
+    const matchedCount = annotatedIngredients.filter((i: any) => i.inFridge).length;
     const fridgeMatchPercent =
       annotatedIngredients.length > 0
         ? Math.round((matchedCount / annotatedIngredients.length) * 100)
         : 0;
 
     return {
-      ...recipe.toJSON(),
+      ...recipeObj,
       ingredients: annotatedIngredients,
       fridgeMatchPercent,
       isFavorite,
