@@ -7,6 +7,7 @@ import fridgeRoutes from "./fridge.route";
 import recipeRoutes from "./recipe.route";
 import adminRoutes from "./admin.route";
 import cookingHistoryRoutes from "./cookingHistory.route";
+import aiRoutes from "./ai.routes";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/fridge", fridgeRoutes);
 router.use("/recipes", recipeRoutes);
 router.use("/admin", adminRoutes);
 router.use("/cooking-history", cookingHistoryRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;
