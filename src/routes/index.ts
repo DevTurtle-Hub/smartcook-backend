@@ -9,6 +9,7 @@ import adminRoutes from "./admin.route";
 import cookingHistoryRoutes from "./cookingHistory.route";
 import aiRoutes from "./ai.routes";
 import communityRoutes from "./community.route";
+import chatRoutes from "./chat.route";
 
 const router = Router();
 
@@ -26,5 +27,8 @@ router.use("/ai", aiRoutes);
 // Dual Routing Alias for Community (Web: /posts, Mobile: /community/posts)
 router.use("/posts", communityRoutes);
 router.use("/community/posts", communityRoutes);
+
+// Realtime Chat & Conversations
+router.use("/chat", chatRoutes);
 
 export default router;
