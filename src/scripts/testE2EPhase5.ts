@@ -58,12 +58,14 @@ const runE2EPhase5 = async () => {
     // Thiết lập preferences cho User 1 (Khẩu vị Eat Clean, khẩu phần 2 người)
     await User.findByIdAndUpdate(user1Id, {
       preferences: {
-        dietaryRestrictions: ["Eat Clean", "Ít dầu mỡ"],
-        allergies: ["Đậu phộng"],
-        servings: 2,
-        fitnessGoal: "Tăng cơ giảm mỡ",
-        preferredFlavors: ["Thanh đạm", "Chua ngọt nhẹ"],
-        cookingTimeLimit: 25,
+        hasCompletedSurvey: true,
+        portion: "2",
+        cuisines: ["vietnamese", "healthy"],
+        healthGoal: "muscle",
+        restrictions: ["Eat Clean", "Ít dầu mỡ"],
+        tasteProfile: ["dam-da", "chua-ngot"],
+        cookingTime: "quick",
+        updatedAt: new Date(),
       },
     });
     console.log("✅ 1.2. Đã lưu khảo sát khẩu vị cá nhân (preferences) của User 1.");
@@ -77,10 +79,9 @@ const runE2EPhase5 = async () => {
       },
       body: JSON.stringify({
         name: "Thịt ức gà",
-        quantity: 500,
-        unit: "g",
+        amount: "500g",
         category: "meat",
-        daysToExpiry: 3,
+        storageLocation: "chilled",
       }),
     });
     await fetch(`${baseUrl}/fridge/items`, {
@@ -91,10 +92,9 @@ const runE2EPhase5 = async () => {
       },
       body: JSON.stringify({
         name: "Cà chua bi",
-        quantity: 300,
-        unit: "g",
-        category: "vegetable",
-        daysToExpiry: 5,
+        amount: "300g",
+        category: "veggies",
+        storageLocation: "chilled",
       }),
     });
     console.log("✅ 1.3. Đã nạp ức gà và cà chua bi vào UserFridge của User 1.");

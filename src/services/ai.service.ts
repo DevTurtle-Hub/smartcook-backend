@@ -292,23 +292,24 @@ Lưu ý:
     try {
       // 1. Context Injection: Get user preferences
       const user = await userRepository.findById(userId);
-      const preferences = user?.preferences || {};
+      const preferences = user?.preferences;
 
       // 2. Context Injection: Get user fridge items
       const fridge = await fridgeRepository.getOrCreateFridge(userId);
       const fridgeIngredientNames = (fridge.items || [])
-        .map((it) => `${it.name}${it.quantity ? ` (${it.quantity} ${it.unit || ""})` : ""}`)
+        .map((it) => `${it.name}${it.amount ? ` (${it.amount})` : ""}`)
         .join(", ");
 
       const systemPrompt = `Bạn là Trợ lý Ảo SmartCook 👩‍🍳 - Bếp trưởng AI tận tâm, thấu hiểu dinh dưỡng và kỹ thuật nấu nướng gia đình.
 NGỮ CẢNH CỦA NGƯỜI DÙNG HIỆN TẠI:
 - Nguyên liệu đang có sẵn trong tủ lạnh: ${fridgeIngredientNames || "Tủ lạnh hiện chưa lưu nguyên liệu nào"}.
 - Khẩu vị & Mục tiêu cá nhân:
-  + Khẩu phần: ${preferences.servings || 2} người
-  + Chế độ ăn kiêng / Dị ứng: ${(preferences.dietaryRestrictions || []).join(", ") || "Không có"}
-  + Mục tiêu sức khoẻ: ${preferences.fitnessGoal || "Duy trì vóc dáng, ăn ngon khỏe"}
-  + Hương vị yêu thích: ${(preferences.preferredFlavors || []).join(", ") || "Đậm đà, thanh đạm"}
-  + Thời gian nấu tối đa: ${preferences.cookingTimeLimit || 30} phút
+  + Khẩu phần: ${preferences?.portion || "2-3"} người
+  + Chế độ ăn kiêng / Hạn chế: ${(preferences?.restrictions || []).join(", ") || "Không có"}
+  + Mục tiêu sức khoẻ: ${preferences?.healthGoal || "healthy (Ăn ngon khỏe, cân bằng)"}
+  + Hương vị yêu thích: ${(preferences?.tasteProfile || []).join(", ") || "Đậm đà, thanh đạm"}
+  + Phong cách ẩm thực: ${(preferences?.cuisines || []).join(", ") || "Việt Nam, Eat Clean"}
+  + Thời gian nấu: ${preferences?.cookingTime || "standard (Dưới 30 phút)"}
 
 YÊU CẦU:
 1. Hãy trả lời câu hỏi của người dùng một cách ấm áp, súc tích, thực tế, kèm các mẹo nấu ăn hoặc gợi ý món phù hợp nhất với nguyên liệu tủ lạnh và khẩu vị của họ.
