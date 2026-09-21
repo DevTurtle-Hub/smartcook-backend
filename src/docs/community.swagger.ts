@@ -107,7 +107,7 @@
  * @swagger
  * /api/v1/posts:
  *   get:
- *     summary: Get paginated community feed posts (Dual alias: /api/v1/community/posts)
+ *     summary: "Get paginated community feed posts (Dual alias: /api/v1/community/posts)"
  *     tags: [Community]
  *     parameters:
  *       - in: query

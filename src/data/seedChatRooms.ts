@@ -51,7 +51,7 @@ export async function seedDefaultChatRooms(): Promise<void> {
       await Conversation.findOneAndUpdate(
         { roomCode: room.roomCode },
         { $setOnInsert: room },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       ).exec();
     }
     console.log("✅ [Seed] Default chat rooms seeded successfully.");
