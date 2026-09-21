@@ -338,39 +338,74 @@ Khớp `ChatMessage` từ `community.ts`.
 
 ## 4. Kiến Trúc Tích Hợp Trí Tuệ Nhân Tạo (Gemini 1.5 Flash Vision & AI Chef Assistant)
 
-Hệ thống tích hợp trực tiếp **Google Gemini 1.5 Flash** (độ trễ < 1.5s, hỗ trợ Multimodal Vision tiếng Việt xuất sắc) đáp ứng 2 tính năng trọng tâm của Mobile:
+Hệ thống tích hợp trực tiếp **Google Gemini 1.5 Flash** (độ trễ < 1.5s, hỗ trợ Multimodal Vision tiếng Việt xuất sắc) đáp ứng trọn vẹn 2 tính năng trọng tâm của Mobile App (`ScanAIView.tsx` & `DraggableAIAssistant.tsx`):
 
 ```mermaid
 sequenceDiagram
-    participant Mobile as Mobile App (ScanAIView)
+    participant Mobile as Mobile App (ScanAIView / AIAssistant)
     participant BE as Backend Express
     participant CDN as Cloudinary
     participant Gemini as Google Gemini 1.5 Flash
     participant DB as MongoDB Atlas
 
+    rect rgb(240, 248, 255)
+    Note over Mobile,DB: Luồng 1: AI Vision Scan Bàn Bếp / Tủ Lạnh
     Mobile->>BE: POST /api/v1/ai/scan-ingredients (FormData: Image)
-    BE->>CDN: Upload buffer lên Cloudinary
+    BE->>CDN: Upload buffer lên Cloudinary (smartcook/scans)
     CDN-->>BE: Trả về secure_url
-    BE->>Gemini: Gửi image_url + System Prompt + Response JSON Schema
+    BE->>Gemini: Gửi image_url + Structured Output JSON Schema
     Note over Gemini: Nhận diện thực phẩm bàn bếp / tủ lạnh<br/>Tính toạ độ pins % (top, left, bottom, right)<br/>Gợi ý công thức sáng tạo khớp 100% nguyên liệu
     Gemini-->>BE: JSON { accuracy, ingredients, pins, suggestedRecipe }
     BE->>DB: Lưu vào `scan_histories`
     BE-->>Mobile: Response chuẩn khớp ScanHistoryItem
+    end
+
+    rect rgb(255, 245, 238)
+    Note over Mobile,DB: Luồng 2: Trợ Lý Ảo Bếp Trưởng Thông Minh
+    Mobile->>BE: POST /api/v1/ai/assistant-chat (message, history)
+    BE->>DB: Truy vấn UserFridge (nguyên liệu có sẵn) + User Preferences (khẩu vị)
+    DB-->>BE: Trả về Context tủ lạnh & khẩu vị
+    BE->>Gemini: Prompt Chatbot kèm Context Tủ Lạnh + Khẩu Vị + Persona Bếp Trưởng
+    Gemini-->>BE: JSON { replyText, suggestedDishes, quickPrompts }
+    BE-->>Mobile: Response hiển thị tức thì trên DraggableAIAssistant
+    end
 ```
 
-### Các Luồng AI Chuyên Biệt:
+### Các Luồng AI Chuyên Biệt & Data Contracts:
 1. **AI Fridge & Tabletop Vision Scanner (`POST /api/v1/ai/scan-ingredients`)**:
-   - Nhận ảnh chụp thực phẩm từ camera hoặc thư viện ảnh.
-   - Upload Cloudinary lấy URL và phân tích qua Gemini Vision.
-   - Trả về cấu trúc JSON gồm: `ingredients` kèm độ tin cậy %, `pins` toạ độ phần trăm cho Mobile vẽ nhãn trực quan đè lên ảnh, và `suggestedRecipe` công thức tối ưu.
+   - **Đầu vào**: `multipart/form-data` chứa file ảnh chụp từ camera hoặc thư viện.
+   - **Xử lý**: Upload Cloudinary lấy URL và phân tích qua Gemini Vision bằng Structured Output JSON Schema:
+     ```json
+     {
+       "accuracy": 96,
+       "ingredients": [
+         { "name": "Thịt ức gà", "confidence": "98%", "icon": "food-drumstick" },
+         { "name": "Cà chua bi", "confidence": "96%", "icon": "fruit-cherries" }
+       ],
+       "pins": [
+         { "text": "🍗 Ức gà (98%)", "top": 30, "left": 30 },
+         { "text": "🍅 Cà chua (96%)", "top": 75, "right": 35 }
+       ],
+       "suggestedRecipe": {
+         "title": "Salad Ức Gà Bơ Sáp Sốt Chanh Leo",
+         "desc": "Công thức sáng tạo tối ưu từ 100% nguyên liệu vừa quét được. Không cần đi chợ thêm!",
+         "calories": 380,
+         "durationMinutes": 20,
+         "matchPercent": 100
+       }
+     }
+     ```
+   - **Lưu trữ**: Tự động lưu vào collection `scan_histories` để phục vụ màn hình lịch sử quét.
 2. **AI Chef Assistant Chatbot (`POST /api/v1/ai/assistant-chat`)**:
-   - Phục vụ widget kéo thả nổi `DraggableAIAssistant.tsx`.
-   - Tiếp nhận câu hỏi của người dùng, tự động đính kèm ngữ cảnh:
-     - Danh sách nguyên liệu hiện có trong `UserFridge`.
-     - Khẩu vị cá nhân (`cuisines`, `healthGoal`, `restrictions`, `tasteProfile`) từ survey.
-   - Trợ lý AI đóng vai "Chuyên gia Bếp trưởng SmartCook" trả lời tận tình, gợi ý định lượng, gia giảm gia vị chuẩn xác.
-3. **Lịch Sử Quét AI (`GET /api/v1/ai/scan-history`)**:
-   - Phục vụ `ScanHistoryModal.tsx` trên mobile xem lại các lần quét trước đó.
+   - Phục vụ widget kéo thả nổi `DraggableAIAssistant.tsx` trên Mobile.
+   - **Tự động Inject Ngữ Cảnh**:
+     - Danh sách nguyên liệu hiện có trong `UserFridge` của user.
+     - Khẩu vị cá nhân (`cuisines`, `healthGoal`, `restrictions`, `tasteProfile`, `cookingTime`) từ Onboarding Survey.
+   - **Đầu ra**: Trả về câu trả lời Markdown chuyên nghiệp `replyText`, mảng món ăn gợi ý `suggestedDishes` (người dùng click vào chuyển ngay sang màn hình chi tiết món) và danh sách gợi ý câu hỏi tiếp theo `quickPrompts`.
+3. **Cơ Chế Fallback Thông Minh (Graceful Degradation)**:
+   - Khi Gemini API Key gặp lỗi rate limit (15 requests/minute free tier) hoặc mạng chập chờn, service tự động kích hoạt bộ nhận diện heuristic/preset chất lượng cao để đảm bảo người dùng trên Mobile/Web không bao giờ bị gián đoạn trải nghiệm hay gặp màn hình lỗi.
+4. **Lịch Sử Quét AI (`GET /api/v1/ai/scan-history`)**:
+   - Phục vụ `ScanHistoryModal.tsx` trên mobile xem lại các lần quét thực phẩm trước đó.
 
 ---
 
@@ -506,7 +541,7 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
     - Kiểm tra và tự động thăng cấp bậc đầu bếp (`level`):
       - 0 - 150 XP: "Tập sự"
       - 151 - 400 XP: "Bếp gia đình"
-      - 401 - 800 XP: "Đầu bếp tài ba"
+      - 401 - 800 XP: "Đầu bếp tài ba" 
       - 801+ XP: "Bếp trưởng"
   - [x] Triển khai Endpoint `GET /api/v1/cooking-history`: Lấy lịch sử nấu ăn của user đăng nhập (sắp xếp mới nhất trước).
   - [x] Triển khai Endpoint `DELETE /api/v1/cooking-history/:id`: Xoá một mục lịch sử nấu ăn của chính chủ (chặn user khác mã 403).
@@ -518,102 +553,126 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
 ### Giai đoạn 5: Module Gemini AI Service (Vision Scan Tủ Lạnh + Pins & AI Chef Assistant)
 - [ ] **5.1. Tích Hợp Google Gen AI SDK (`@google/genai`)**:
   - [ ] Khởi tạo client `src/config/gemini.ts` với `GEMINI_API_KEY`, sử dụng model `gemini-1.5-flash`.
-  - [ ] Tạo Model `ScanHistory.ts` & Repository `scanHistory.repository.ts`.
-  - [ ] Xây dựng Service `src/services/ai.service.ts`:
+  - [ ] Tạo Model `ScanHistory.ts` & Repository `scanHistory.repository.ts` với các trường: `userId`, `title`, `imageUrl`, `accuracy`, `ingredients`, `pins`, `suggestedRecipe`, `scannedAt`.
+  - [ ] Xây dựng Service `src/services/ai.service.ts` tích hợp cơ chế **Smart Fallback** (tự động phục hồi khi chạm giới hạn 15 RPM của Gemini Free Tier để ứng dụng luôn phản hồi < 1.5s không bị crash).
 - [ ] **5.2. Endpoint Nhận Diện Thực Phẩm & Tạo Ghim Toạ Độ (`POST /api/v1/ai/scan-ingredients`)**:
-  - [ ] Nhận ảnh chụp từ thiết bị (Multipart/form-data) -> Upload lên Cloudinary thư mục `smartcook/scans`.
-  - [ ] Truyền ảnh qua Gemini Vision với Structured Output JSON Schema:
-    - Danh sách `ingredients`: Tên thực phẩm tiếng Việt, độ tin cậy %, icon tương ứng.
-    - Danh sách `pins`: Toạ độ phần trăm `{ text, top, left, bottom, right }` phục vụ Mobile vẽ thẻ ghim trực quan.
-    - `suggestedRecipe`: Món ăn sáng tạo tối ưu nhất từ 100% nguyên liệu vừa quét được.
-  - [ ] Lưu kết quả vào `ScanHistory` và trả về Client.
+  - [ ] Nhận ảnh chụp từ thiết bị (`multipart/form-data`) -> Upload lên Cloudinary thư mục `smartcook/scans`.
+  - [ ] Truyền ảnh qua Gemini 1.5 Flash Vision với Structured Output JSON Schema ép kiểu chặt chẽ:
+    - Danh sách `ingredients`: Tên thực phẩm tiếng Việt, độ tin cậy %, icon tương ứng (`food-drumstick`, `fruit-cherries`, `food-apple`...).
+    - Danh sách `pins`: Toạ độ phần trăm `{ text, top, left, bottom, right }` phục vụ Mobile vẽ thẻ ghim trực quan đè lên ảnh.
+    - `suggestedRecipe`: Món ăn sáng tạo tối ưu nhất từ 100% nguyên liệu vừa quét được (`title`, `desc`, `calories`, `durationMinutes`, `matchPercent`).
+  - [ ] Lưu kết quả vào `ScanHistory` và trả về Client khớp 100% `ScanHistoryItem`.
 - [ ] **5.3. Endpoint Lịch Sử Quét AI (`GET /api/v1/ai/scan-history`)**:
-  - [ ] Lấy danh sách các lần quét của user đăng nhập phục vụ `ScanHistoryModal.tsx`.
+  - [ ] Lấy danh sách các lần quét của user đăng nhập (sắp xếp mới nhất trước) phục vụ `ScanHistoryModal.tsx`.
 - [ ] **5.4. Endpoint Trợ Lý Ảo Ẩm Thực Thông Minh (`POST /api/v1/ai/assistant-chat`)**:
-  - [ ] Tiếp nhận câu hỏi ẩm thực của user từ widget `DraggableAIAssistant.tsx`.
-  - [ ] Tự động trích xuất ngữ cảnh:
+  - [ ] Tiếp nhận câu hỏi ẩm thực của user từ widget kéo thả `DraggableAIAssistant.tsx` (nhận `message` và `conversationHistory`).
+  - [ ] Tự động trích xuất và đính kèm ngữ cảnh (Context Injection):
     - Danh sách nguyên liệu hiện có trong `UserFridge` của user.
-    - Thông tin khẩu vị trong `preferences` (khẩu phần, món kiêng, mục tiêu sức khoẻ, vị yêu thích).
-  - [ ] Prompt Gemini trả lời ngắn gọn, thiết thực, hướng dẫn chi tiết từng bước nấu và giải quyết nhanh các tình huống phát sinh trong bếp.
-- [ ] Viết Swagger docs `src/docs/ai.swagger.ts` và test script kiểm tra API AI.
+    - Thông tin khẩu vị cá nhân trong `preferences` (khẩu phần, món kiêng, mục tiêu sức khoẻ, vị yêu thích, thời gian nấu).
+  - [ ] Prompt Gemini đóng vai "Chuyên gia Bếp trưởng SmartCook" trả lời tận tình, giải quyết nhanh các tình huống phát sinh trong bếp.
+  - [ ] Định dạng phản hồi: Trả về `replyText` (Markdown/emoji), `suggestedDishes` (mảng các món ăn gợi ý để user click xem ngay công thức), và `quickPrompts` (gợi ý câu hỏi tiếp theo).
+- [ ] Viết Swagger docs `src/docs/ai.swagger.ts` và test script tự động `src/scripts/testE2EPhase5.ts`.
 
 ---
 
 ### Giai đoạn 6: Mạng Xã Hội Cộng Đồng & Realtime Socket.io Chat Gateway
-- [ ] **6.1. Module Mạng Xã Hội Ẩm Thực (`/api/v1/community`)**:
-  - [ ] Tạo Model `CommunityPost.ts` & `CommunityComment.ts` khớp giao diện `CommunityView.tsx`.
-  - [ ] Xây dựng Repository & Service: `community.service.ts`.
+- [ ] **6.1. Module Mạng Xã Hội Ẩm Thực (`/api/v1/posts` & `/api/v1/community/posts`)**:
+  - [ ] Cấu hình **Dual Routing / Alias**: Đăng ký cả 2 tiền tố `/api/v1/posts` (dành cho Web Admin/Public Web) và `/api/v1/community/posts` (dành cho Mobile) trỏ về cùng một Controller.
+  - [ ] Tạo Model `Post.ts` & `Comment.ts` với **Mongoose Virtuals & DTO Adapter**:
+    - Ánh xạ hai chiều giữa `caption` $\leftrightarrow$ `content` và `title` $\leftrightarrow$ `dishName`.
+    - Ánh xạ bộ đếm cảm xúc `totalReactions` $\leftrightarrow$ `likesCount`, tự động xác định `isLiked` theo user ID đang đăng nhập.
+  - [ ] Xây dựng Repository & Service: `community.service.ts` hỗ trợ upload nhiều ảnh qua Cloudinary (`smartcook/community`).
   - [ ] Triển khai các Endpoints:
-    - `GET /api/v1/community/posts`: Bảng tin cộng đồng, hỗ trợ phân trang (`page`, `limit`), lọc theo hashtag (`#EatClean`, `#MonNgon`...).
-    - `POST /api/v1/community/posts`: Đăng bài viết chia sẻ món ăn kèm upload ảnh Cloudinary.
-    - `POST /api/v1/community/posts/:id/like`: Thả tim / Bỏ thả tim bài viết.
-    - `POST /api/v1/community/posts/:id/comments`: Thêm bình luận vào bài viết.
-    - `DELETE /api/v1/community/posts/:id`: Xoá bài đăng (kiểm tra quyền tác giả hoặc Admin).
+    - `GET /api/v1/posts`: Bảng tin cộng đồng, hỗ trợ phân trang (`page`, `limit`), lọc theo hashtag (`#EatClean`, `#MonNgon`...).
+    - `POST /api/v1/posts`: Đăng bài viết chia sẻ kèm upload ảnh Cloudinary.
+    - `POST /api/v1/posts/:id/like` (và `:id/react`): Thả tim / Bỏ thả tim / Thả cảm xúc 6 loại.
+    - `POST /api/v1/posts/:id/comments`: Thêm bình luận (hỗ trợ trả lời lồng nhau `parentCommentId`).
+    - `GET /api/v1/posts/:id/comments`: Lấy danh sách bình luận theo bài viết có phân trang.
+    - `DELETE /api/v1/posts/:id`: Xoá bài đăng (kiểm tra quyền tác giả hoặc Admin).
   - [ ] Viết Swagger docs `src/docs/community.swagger.ts`.
 - [ ] **6.2. Module Realtime Socket.io Chat Gateway**:
-  - [ ] Cài đặt `socket.io` và cấu hình HTTP Server wrapper trong `src/server.ts`.
-  - [ ] Tạo Middleware `src/socket/socketAuth.ts`: Xác thực JWT token khi handshake kết nối.
-  - [ ] Tạo Model `Conversation.ts` và `Message.ts`.
+  - [ ] Cài đặt `socket.io` và `@types/socket.io`, cấu hình HTTP Server wrapper trong `src/server.ts`.
+  - [ ] Cấu hình CORS linh hoạt: Cho phép kết nối đồng thời từ Web Vite (`http://localhost:5173`), Mobile Expo Go (`*`) và các môi trường phát triển.
+  - [ ] Tạo Middleware `src/socket/socketAuth.ts`: Xác thực JWT token khi handshake kết nối WebSocket.
+  - [ ] Tạo Model `Conversation.ts` (hỗ trợ cả chat 1-1 `direct` và phòng chat chung `room`) và `Message.ts`.
+  - [ ] Viết Seed Script `src/data/seedChatRooms.ts`: Nạp sẵn 3 phòng chat cộng đồng mẫu:
+    - Room 1: "Góc Chia Sẻ Mẹo Nấu Nhanh" (icon: `flash`, tags: `['#MonNhanh', '#MeoVat']`)
+    - Room 2: "Hội Ăn Chay & Eat Clean" (icon: `leaf`, tags: `['#EatClean', '#Chay']`)
+    - Room 3: "Hỏi Đáp Cùng Bếp Trưởng" (icon: `chef-hat`, tags: `['#HoiDap', '#KyThuat']`)
   - [ ] Xây dựng Socket Event Handler `src/socket/chat.handler.ts`:
-    - `join_room` / `leave_room`: Tham gia vào cuộc hội thoại hoặc phòng chat chung.
-    - `send_message`: Gửi tin nhắn tức thời, lưu vào MongoDB và broadcast tới người nhận.
-    - `typing` / `stop_typing`: Báo hiệu đang soạn tin nhắn.
+    - `join_room` / `leave_room`: Tham gia vào cuộc hội thoại 1-1 hoặc phòng chat cộng đồng.
+    - `send_message`: Gửi tin nhắn tức thời, upload ảnh đính kèm, lưu MongoDB và broadcast tới người nhận.
+    - `typing` / `stop_typing`: Báo hiệu đối phương đang soạn tin nhắn.
     - `online_status`: Quản lý danh sách người dùng đang trực tuyến.
   - [ ] REST API cho Chat (`/api/v1/chat`):
-    - `GET /api/v1/chat/conversations`: Lấy danh sách cuộc trò chuyện.
-    - `GET /api/v1/chat/conversations/:id/messages`: Lấy lịch sử tin nhắn.
-  - [ ] Viết Swagger docs `src/docs/chat.swagger.ts`.
+    - `GET /api/v1/chat/conversations`: Lấy danh sách cuộc trò chuyện và phòng chat cộng đồng.
+    - `GET /api/v1/chat/conversations/:id/messages`: Tải lịch sử tin nhắn cũ (phân trang lùi theo thời gian `cursor`).
+  - [ ] Viết Swagger docs `src/docs/chat.swagger.ts` và test script tự động `src/scripts/testE2EPhase6.ts`.
 
 ---
 
 ### Giai đoạn 7: Kế Hoạch Bữa Ăn (Meal Planner), Giỏ Đi Chợ Tự Động & Định Vị Siêu Thị GPS
 - [ ] **7.1. Module Kế Hoạch Bữa Ăn & Giỏ Đi Chợ Thông Minh (`/api/v1/planner`)**:
-  - [ ] Tạo Model `MealPlan.ts` & `CartItem.ts` khớp giao diện `PlannerView.tsx`.
+  - [ ] Tạo Model `MealPlan.ts` (lưu thực đơn tuần 7 ngày, các slot sáng/trưa/tối) & `CartItem.ts` khớp giao diện `PlannerView.tsx`.
   - [ ] Triển khai các Endpoints:
-    - `GET /api/v1/planner/current-week`: Lấy thực đơn 7 ngày của tuần hiện tại (Bữa sáng, Bữa trưa, Bữa tối).
+    - `GET /api/v1/planner/current-week`: Lấy thực đơn 7 ngày của tuần hiện tại (Bữa sáng, Bữa trưa, Bữa tối, Bữa phụ).
     - `PUT /api/v1/planner/meals`: Thêm/sửa món ăn cho một slot bữa ăn trong tuần.
-    - `GET /api/v1/planner/shopping-list`: **Thuật toán tự động sinh danh mục đi chợ**:
-      $$\text{Danh mục đi chợ} = \sum \text{Nguyên liệu thực đơn 7 ngày} - \text{Nguyên liệu đang có trong UserFridge}$$
+    - `GET /api/v1/planner/shopping-list`: **Thuật toán tự động sinh danh mục đi chợ thông minh**:
+      - Tổng hợp toàn bộ nguyên liệu cần dùng trong 7 ngày thực đơn.
+      - Sử dụng `normalizeVietnamese` và đối chiếu từ đồng nghĩa `aliases` để đối chiếu với kho thực phẩm `UserFridge`.
+      - Tự động trừ đi các nguyên liệu đã có sẵn trong tủ lạnh:
+        $$\text{Danh mục đi chợ} = \sum \text{Nguyên liệu thực đơn tuần} - \text{Nguyên liệu có trong UserFridge}$$
     - `PATCH /api/v1/planner/shopping-list/:id/bought`: Đánh dấu nguyên liệu đã mua xong (`bought: true/false`).
+    - `POST /api/v1/planner/sync-to-fridge`: **Đồng bộ giỏ hàng vào tủ lạnh**: Chuyển các nguyên liệu đã mua (`bought: true`) trực tiếp vào `UserFridge`.
   - [ ] Viết Swagger docs `src/docs/planner.swagger.ts`.
 - [ ] **7.2. Module Định Vị Siêu Thị Lân Cận GPS (`/api/v1/stores`)**:
   - [ ] Tạo Model `Store.ts` với chỉ mục GeoJSON `location: "2dsphere"`.
-  - [ ] Viết Seed script `src/data/seedStores.ts`: Nạp dữ liệu các chuỗi siêu thị phổ biến tại Việt Nam (WinMart, Co.opmart, Bách Hóa Xanh, Annam Gourmet, Lotte Mart...).
+  - [ ] Viết Seed script `src/data/seedStores.ts`: Nạp dữ liệu 10 chuỗi siêu thị phổ biến thực tế tại Việt Nam (WinMart+, Co.opmart, Tops Market, Bách Hóa Xanh, Annam Gourmet, Lotte Mart, Emart...) kèm toạ độ GPS chính xác tại TP.HCM và Hà Nội.
   - [ ] Triển khai Endpoint `GET /api/v1/stores/nearby`:
-    - Tiếp nhận toạ độ GPS `lat` và `lng` từ mobile.
-    - Sử dụng toán tử MongoDB `$geoNear` để tìm các siêu thị trong bán kính lân cận, tính khoảng cách chính xác theo km và ước lượng thời gian di chuyển (xe máy/đi bộ).
-  - [ ] Viết Swagger docs `src/docs/store.swagger.ts`.
+    - Tiếp nhận toạ độ GPS `lat` và `lng` từ thiết bị người dùng.
+    - Sử dụng toán tử MongoDB `$geoNear` để tìm các siêu thị trong bán kính lân cận sắp xếp theo khoảng cách tăng dần.
+    - Tự động tính toán và trả về:
+      - `distanceKm`: Khoảng cách tính theo km (làm tròn 1 chữ số thập phân).
+      - `travelTimeMotoMinutes = Math.round(distanceKm * 2.5) + 2`: Thời gian di chuyển ước tính bằng xe máy.
+      - `travelTimeWalkMinutes = Math.round(distanceKm * 12) + 5`: Thời gian đi bộ ước tính.
+  - [ ] Viết Swagger docs `src/docs/store.swagger.ts` và test script tự động `src/scripts/testE2EPhase7.ts`.
 
 ---
 
 ### Giai đoạn 8: Tích Hợp Toàn Diện Cả Mobile & Web Admin, Kiểm Thử End-to-End
 - [ ] **8.1. Kiểm Thử Tích Hợp Mobile Frontend (`smartcook-mobile`)**:
-  - [ ] Đấu nối toàn bộ API và Socket từ backend vào các Services của Mobile.
+  - [ ] Đấu nối toàn bộ API và Socket từ backend vào các Services của Mobile:
+    - Thay thế `SCAN_PRESETS` trong `ScanAIView.tsx` bằng API `POST /api/v1/ai/scan-ingredients`.
+    - Thay thế regex if/else trong `DraggableAIAssistant.tsx` bằng API `POST /api/v1/ai/assistant-chat`.
+    - Thay thế in-memory trong `communityService.ts` bằng API `/api/v1/posts` và Socket.io realtime.
+    - Thay thế `PlannerView.tsx` bằng API `/api/v1/planner` và `/api/v1/stores/nearby`.
   - [ ] Kiểm thử luồng: Tạo công thức -> Nấu ăn -> Nhận +50 XP -> Thăng hạng đầu bếp.
   - [ ] Kiểm thử AI Scan: Chụp ảnh -> Hiển thị Pins trực quan -> Bấm vào món ăn gợi ý.
-  - [ ] Kiểm thử Chat Realtime: Gửi tin nhắn 1-1 và trong phòng chat ẩm thực tức thì.
-  - [ ] Kiểm thử Thực đơn tuần & Tự động sinh giỏ hàng đi chợ.
+  - [ ] Kiểm thử Chat Realtime: Gửi nhận tin nhắn 1-1 và trong phòng chat ẩm thực tức thì.
+  - [ ] Kiểm thử Thực đơn tuần & Tự động sinh giỏ hàng đi chợ & Đồng bộ vào tủ lạnh.
   - [ ] Kiểm thử GPS Siêu thị gần nhất.
 - [ ] **8.2. Kiểm Thử Tích Hợp Web Admin (`smartcook-web`)**:
   - [ ] Đấu nối API Dashboard, Quản lý công thức kèm Cloudinary, Quản lý thành viên.
+  - [ ] Đấu nối API Mạng xã hội cộng đồng (`community.api.ts`).
+  - [ ] Kiểm thử tương thích hai chiều (Cross-platform): Đăng bài từ Web hiển thị trên Mobile, bình luận từ Mobile hiển thị trên Web.
 - [ ] **8.3. Hoàn Thiện Bộ Tài Liệu API & Postman Collection**:
   - [ ] Cập nhật toàn bộ endpoints vào `SmartCook_API_Collection.json`.
-  - [ ] Đảm bảo Swagger UI tại `/api-docs` hiển thị đầy đủ 100% schemas và endpoints.
+  - [ ] Đảm bảo Swagger UI tại `/api-docs` hiển thị đầy đủ 100% schemas và endpoints cho toàn bộ 16 collections.
 
 ---
 
 ## 8. Kế Hoạch Xác Minh & Kiểm Thử (Verification Plan)
 
 ### Kiểm Thử Tự Động (Automated Testing)
-- Script kiểm thử E2E tự động cho từng Phase mô phỏng đầy đủ hành vi thực tế của client.
+- Script kiểm thử E2E tự động cho từng Phase (`testE2EPhase5.ts`, `testE2EPhase6.ts`, `testE2EPhase7.ts`) mô phỏng đầy đủ hành vi thực tế của client.
 - Kiểm tra tính hợp lệ của GeoJSON query trên collection `stores`.
 - Kiểm tra handshake và broadcast event của Socket.io.
-- Kiểm tra phản hồi JSON có cấu trúc từ Gemini 1.5 Flash API.
+- Kiểm tra phản hồi JSON có cấu trúc từ Gemini 1.5 Flash API và kiểm tra cơ chế Smart Fallback.
 
-### Kiểm Thử Tích Hợp Nghiệp Vụ (Business Integration Verification)
+### Kiểm Thử Tích Hợp Nghiệp Vụ (Cross-Platform Verification Matrix)
 1. **User Custom Recipe Flow**: User tạo món kèm upload ảnh -> Kiểm tra công thức xuất hiện trên newsfeed và lưu `authorId`.
 2. **Chef XP & Gamification Flow**: Hoàn thành món ăn -> Gọi API cooking history -> Kiểm tra `chefExp` tăng đúng +50 XP và cập nhật `level`.
-3. **AI Vision & Chat Flow**: Gửi ảnh -> Xác nhận có đủ pins toạ độ %, gợi ý món -> Đặt câu hỏi cho Trợ lý AI -> Xác nhận câu trả lời có context tủ lạnh.
+3. **AI Vision & Chat Flow**: Gửi ảnh -> Xác nhận có đủ pins toạ độ %, gợi ý món -> Đặt câu hỏi cho Trợ lý AI -> Xác nhận câu trả lời có context tủ lạnh và gợi ý món ăn.
 4. **Social & Realtime Chat Flow**: Đăng bài, thả tim, bình luận -> Mở 2 socket client nhắn tin 1-1 -> Xác nhận tin nhắn hiển thị tức thì 0ms.
-5. **Smart Planner & Cart Flow**: Chọn món cho 7 ngày -> Gọi API shopping-list -> Xác nhận các nguyên liệu đã có trong tủ lạnh được tự động loại trừ.
-6. **Nearby Stores Flow**: Gửi toạ độ GPS -> Xác nhận danh sách siêu thị sắp xếp đúng khoảng cách từ gần đến xa.
+5. **Smart Planner & Cart Flow**: Chọn món cho 7 ngày -> Gọi API shopping-list -> Xác nhận các nguyên liệu đã có trong tủ lạnh được tự động loại trừ -> Bấm đồng bộ giỏ hàng vào tủ lạnh thành công.
+6. **Nearby Stores Flow**: Gửi toạ độ GPS -> Xác nhận danh sách siêu thị sắp xếp đúng khoảng cách từ gần đến xa kèm thời gian di chuyển xe máy/đi bộ.
