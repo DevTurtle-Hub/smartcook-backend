@@ -1,13 +1,23 @@
+import http from "http";
 import app from "./app";
 import { env } from "./config/env";
 import connectDB, { disconnectDB } from "./config/db";
+import { initSocketIO } from "./socket/chat.gateway";
+import { seedDefaultChatRooms } from "./data/seedChatRooms";
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and seed chat rooms
+connectDB().then(() => {
+  seedDefaultChatRooms();
+});
+
+// Create HTTP Server and bind Socket.io
+const httpServer = http.createServer(app);
+initSocketIO(httpServer);
 
 // Start HTTP Server
-const server = app.listen(env.PORT, () => {
+const server = httpServer.listen(env.PORT, () => {
   console.log(`[Server] SmartCook Backend running at http://localhost:${env.PORT}`);
+  console.log(`[Server] Socket.io Gateway initialized at ws://localhost:${env.PORT}`);
   console.log(`[Server] Environment: ${env.NODE_ENV}`);
   console.log(`[Server] API Docs: http://localhost:${env.PORT}/api-docs`);
   console.log(`[Server] Health Check: http://localhost:${env.PORT}/api/v1/health`);

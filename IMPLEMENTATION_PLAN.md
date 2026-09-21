@@ -578,38 +578,42 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
 ---
 
 ### Giai đoạn 6: Mạng Xã Hội Cộng Đồng & Realtime Socket.io Chat Gateway
-- [ ] **6.1. Module Mạng Xã Hội Ẩm Thực (`/api/v1/posts` & `/api/v1/community/posts`)**:
-  - [ ] Cấu hình **Dual Routing / Alias**: Đăng ký cả 2 tiền tố `/api/v1/posts` (dành cho Web Admin/Public Web) và `/api/v1/community/posts` (dành cho Mobile) trỏ về cùng một Controller.
-  - [ ] Tạo Model `Post.ts` & `Comment.ts` với **Mongoose Virtuals & DTO Adapter**:
+- [x] **6.1. Module Mạng Xã Hội Ẩm Thực (`/api/v1/posts` & `/api/v1/community/posts`)**:
+  - [x] Cấu hình **Dual Routing / Alias**: Đăng ký cả 2 tiền tố `/api/v1/posts` (dành cho Web Admin/Public Web) và `/api/v1/community/posts` (dành cho Mobile) trỏ về cùng một Controller.
+  - [x] Tạo Model `Post.ts` & `Comment.ts` với **Mongoose Virtuals & DTO Adapter**:
     - Ánh xạ hai chiều giữa `caption` $\leftrightarrow$ `content` và `title` $\leftrightarrow$ `dishName`.
     - Ánh xạ bộ đếm cảm xúc `totalReactions` $\leftrightarrow$ `likesCount`, tự động xác định `isLiked` theo user ID đang đăng nhập.
-  - [ ] Xây dựng Repository & Service: `community.service.ts` hỗ trợ upload nhiều ảnh qua Cloudinary (`smartcook/community`).
-  - [ ] Triển khai các Endpoints:
+  - [x] Xây dựng Repository & Service: `community.service.ts` hỗ trợ upload nhiều ảnh qua Cloudinary (`smartcook/community`).
+  - [x] Triển khai các Endpoints:
     - `GET /api/v1/posts`: Bảng tin cộng đồng, hỗ trợ phân trang (`page`, `limit`), lọc theo hashtag (`#EatClean`, `#MonNgon`...).
-    - `POST /api/v1/posts`: Đăng bài viết chia sẻ kèm upload ảnh Cloudinary.
+    - `POST /api/v1/posts`: Đăng bài viết chia sẻ kèm upload ảnh Cloudinary (+20 XP Chef).
     - `POST /api/v1/posts/:id/like` (và `:id/react`): Thả tim / Bỏ thả tim / Thả cảm xúc 6 loại.
-    - `POST /api/v1/posts/:id/comments`: Thêm bình luận (hỗ trợ trả lời lồng nhau `parentCommentId`).
+    - `POST /api/v1/posts/:id/comments`: Thêm bình luận (hỗ trợ trả lời lồng nhau `parentCommentId`, +5 XP).
     - `GET /api/v1/posts/:id/comments`: Lấy danh sách bình luận theo bài viết có phân trang.
     - `DELETE /api/v1/posts/:id`: Xoá bài đăng (kiểm tra quyền tác giả hoặc Admin).
-  - [ ] Viết Swagger docs `src/docs/community.swagger.ts`.
-- [ ] **6.2. Module Realtime Socket.io Chat Gateway**:
-  - [ ] Cài đặt `socket.io` và `@types/socket.io`, cấu hình HTTP Server wrapper trong `src/server.ts`.
-  - [ ] Cấu hình CORS linh hoạt: Cho phép kết nối đồng thời từ Web Vite (`http://localhost:5173`), Mobile Expo Go (`*`) và các môi trường phát triển.
-  - [ ] Tạo Middleware `src/socket/socketAuth.ts`: Xác thực JWT token khi handshake kết nối WebSocket.
-  - [ ] Tạo Model `Conversation.ts` (hỗ trợ cả chat 1-1 `direct` và phòng chat chung `room`) và `Message.ts`.
-  - [ ] Viết Seed Script `src/data/seedChatRooms.ts`: Nạp sẵn 3 phòng chat cộng đồng mẫu:
+  - [x] Viết Swagger docs `src/docs/community.swagger.ts`.
+- [x] **6.2. Module Realtime Socket.io Chat Gateway**:
+  - [x] Cài đặt `socket.io` và `@types/socket.io`, cấu hình HTTP Server wrapper trong `src/server.ts`.
+  - [x] Cấu hình CORS linh hoạt: Cho phép kết nối đồng thời từ Web Vite (`http://localhost:5173`), Mobile Expo Go (`*`) và các môi trường phát triển.
+  - [x] Tạo Middleware `src/socket/socketAuth.ts`: Xác thực JWT token khi handshake kết nối WebSocket.
+  - [x] Tạo Model `Conversation.ts` (hỗ trợ cả chat 1-1 `direct` và phòng chat chung `room`) và `Message.ts`.
+  - [x] Viết Seed Script `src/data/seedChatRooms.ts`: Nạp sẵn 3 phòng chat cộng đồng mẫu:
     - Room 1: "Góc Chia Sẻ Mẹo Nấu Nhanh" (icon: `flash`, tags: `['#MonNhanh', '#MeoVat']`)
     - Room 2: "Hội Ăn Chay & Eat Clean" (icon: `leaf`, tags: `['#EatClean', '#Chay']`)
     - Room 3: "Hỏi Đáp Cùng Bếp Trưởng" (icon: `chef-hat`, tags: `['#HoiDap', '#KyThuat']`)
-  - [ ] Xây dựng Socket Event Handler `src/socket/chat.handler.ts`:
+  - [x] Xây dựng Socket Event Handler `src/socket/chat.gateway.ts`:
     - `join_room` / `leave_room`: Tham gia vào cuộc hội thoại 1-1 hoặc phòng chat cộng đồng.
     - `send_message`: Gửi tin nhắn tức thời, upload ảnh đính kèm, lưu MongoDB và broadcast tới người nhận.
     - `typing` / `stop_typing`: Báo hiệu đối phương đang soạn tin nhắn.
     - `online_status`: Quản lý danh sách người dùng đang trực tuyến.
-  - [ ] REST API cho Chat (`/api/v1/chat`):
-    - `GET /api/v1/chat/conversations`: Lấy danh sách cuộc trò chuyện và phòng chat cộng đồng.
-    - `GET /api/v1/chat/conversations/:id/messages`: Tải lịch sử tin nhắn cũ (phân trang lùi theo thời gian `cursor`).
-  - [ ] Viết Swagger docs `src/docs/chat.swagger.ts` và test script tự động `src/scripts/testE2EPhase6.ts`.
+  - [x] REST API cho Chat (`/api/v1/chat`):
+    - `GET /api/v1/chat/rooms`: Lấy danh sách phòng chat cộng đồng.
+    - `GET /api/v1/chat/conversations`: Lấy danh sách cuộc trò chuyện trực tiếp 1-1.
+    - `POST /api/v1/chat/direct`: Tạo hoặc mở cuộc trò chuyện 1-1 với người dùng.
+    - `GET /api/v1/chat/conversations/:id/messages`: Tải lịch sử tin nhắn.
+    - `POST /api/v1/chat/conversations/:id/messages`: Gửi tin nhắn qua REST fallback.
+  - [x] Viết Swagger docs `src/docs/chat.swagger.ts` và test script tự động `src/scripts/testE2EPhase6.ts`.
+- [x] **Kiểm thử E2E Phase 6**: Chạy script `src/scripts/testE2EPhase6.ts` đạt kết quả 6/6 test passed 100%.
 
 ---
 
