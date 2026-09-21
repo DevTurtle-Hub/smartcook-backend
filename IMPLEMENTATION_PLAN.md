@@ -551,27 +551,29 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
 ---
 
 ### Giai đoạn 5: Module Gemini AI Service (Vision Scan Tủ Lạnh + Pins & AI Chef Assistant)
-- [ ] **5.1. Tích Hợp Google Gen AI SDK (`@google/genai`)**:
-  - [ ] Khởi tạo client `src/config/gemini.ts` với `GEMINI_API_KEY`, sử dụng model `gemini-1.5-flash`.
-  - [ ] Tạo Model `ScanHistory.ts` & Repository `scanHistory.repository.ts` với các trường: `userId`, `title`, `imageUrl`, `accuracy`, `ingredients`, `pins`, `suggestedRecipe`, `scannedAt`.
-  - [ ] Xây dựng Service `src/services/ai.service.ts` tích hợp cơ chế **Smart Fallback** (tự động phục hồi khi chạm giới hạn 15 RPM của Gemini Free Tier để ứng dụng luôn phản hồi < 1.5s không bị crash).
-- [ ] **5.2. Endpoint Nhận Diện Thực Phẩm & Tạo Ghim Toạ Độ (`POST /api/v1/ai/scan-ingredients`)**:
-  - [ ] Nhận ảnh chụp từ thiết bị (`multipart/form-data`) -> Upload lên Cloudinary thư mục `smartcook/scans`.
-  - [ ] Truyền ảnh qua Gemini 1.5 Flash Vision với Structured Output JSON Schema ép kiểu chặt chẽ:
+- [x] **5.1. Tích Hợp Google Gen AI SDK (`@google/genai`)**:
+  - [x] Khởi tạo client `src/config/gemini.ts` với `GEMINI_API_KEY`, sử dụng model `gemini-3.6-flash`.
+  - [x] Tạo Model `ScanHistory.ts` & Repository `scanHistory.repository.ts` với các trường: `userId`, `title`, `imageUrl`, `accuracy`, `ingredients`, `pins`, `suggestedRecipe`, `scannedAt`.
+  - [x] Xây dựng Service `src/services/ai.service.ts` tích hợp cơ chế **Smart Fallback** (tự động phục hồi khi chạm giới hạn 15 RPM của Gemini Free Tier để ứng dụng luôn phản hồi < 1.5s không bị crash).
+- [x] **5.2. Endpoint Nhận Diện Thực Phẩm & Tạo Ghim Toạ Độ (`POST /api/v1/ai/scan-ingredients`)**:
+  - [x] Nhận ảnh chụp từ thiết bị (`multipart/form-data`) -> Upload lên Cloudinary thư mục `smartcook/scans`.
+  - [x] Truyền ảnh qua Gemini Vision với Structured Output JSON Schema ép kiểu chặt chẽ:
     - Danh sách `ingredients`: Tên thực phẩm tiếng Việt, độ tin cậy %, icon tương ứng (`food-drumstick`, `fruit-cherries`, `food-apple`...).
     - Danh sách `pins`: Toạ độ phần trăm `{ text, top, left, bottom, right }` phục vụ Mobile vẽ thẻ ghim trực quan đè lên ảnh.
     - `suggestedRecipe`: Món ăn sáng tạo tối ưu nhất từ 100% nguyên liệu vừa quét được (`title`, `desc`, `calories`, `durationMinutes`, `matchPercent`).
-  - [ ] Lưu kết quả vào `ScanHistory` và trả về Client khớp 100% `ScanHistoryItem`.
-- [ ] **5.3. Endpoint Lịch Sử Quét AI (`GET /api/v1/ai/scan-history`)**:
-  - [ ] Lấy danh sách các lần quét của user đăng nhập (sắp xếp mới nhất trước) phục vụ `ScanHistoryModal.tsx`.
-- [ ] **5.4. Endpoint Trợ Lý Ảo Ẩm Thực Thông Minh (`POST /api/v1/ai/assistant-chat`)**:
-  - [ ] Tiếp nhận câu hỏi ẩm thực của user từ widget kéo thả `DraggableAIAssistant.tsx` (nhận `message` và `conversationHistory`).
-  - [ ] Tự động trích xuất và đính kèm ngữ cảnh (Context Injection):
+  - [x] Lưu kết quả vào `ScanHistory` và trả về Client khớp 100% `ScanHistoryItem`.
+- [x] **5.3. Endpoint Lịch Sử Quét AI (`GET /api/v1/ai/scan-history` & `DELETE /api/v1/ai/scan-history/:id`)**:
+  - [x] Lấy danh sách các lần quét của user đăng nhập (sắp xếp mới nhất trước, format thời gian thân thiện) phục vụ `ScanHistoryModal.tsx`.
+  - [x] Xoá bản ghi lịch sử quét với phân quyền chính chủ (chặn user khác 403 Forbidden).
+- [x] **5.4. Endpoint Trợ Lý Ảo Ẩm Thực Thông Minh (`POST /api/v1/ai/assistant-chat`)**:
+  - [x] Tiếp nhận câu hỏi ẩm thực của user từ widget kéo thả `DraggableAIAssistant.tsx` (nhận `message` và `conversationHistory`).
+  - [x] Tự động trích xuất và đính kèm ngữ cảnh (Context Injection):
     - Danh sách nguyên liệu hiện có trong `UserFridge` của user.
     - Thông tin khẩu vị cá nhân trong `preferences` (khẩu phần, món kiêng, mục tiêu sức khoẻ, vị yêu thích, thời gian nấu).
-  - [ ] Prompt Gemini đóng vai "Chuyên gia Bếp trưởng SmartCook" trả lời tận tình, giải quyết nhanh các tình huống phát sinh trong bếp.
-  - [ ] Định dạng phản hồi: Trả về `replyText` (Markdown/emoji), `suggestedDishes` (mảng các món ăn gợi ý để user click xem ngay công thức), và `quickPrompts` (gợi ý câu hỏi tiếp theo).
-- [ ] Viết Swagger docs `src/docs/ai.swagger.ts` và test script tự động `src/scripts/testE2EPhase5.ts`.
+  - [x] Prompt Gemini đóng vai "Chuyên gia Bếp trưởng SmartCook" trả lời tận tình, giải quyết nhanh các tình huống phát sinh trong bếp.
+  - [x] Định dạng phản hồi: Trả về `replyText` (Markdown/emoji), `suggestedDishes` (mảng các món ăn gợi ý để user click xem ngay công thức), và `quickPrompts` (gợi ý câu hỏi tiếp theo).
+- [x] Viết Swagger docs `src/docs/ai.swagger.ts` và test script tự động `src/scripts/testE2EPhase5.ts`.
+- [x] **Kiểm thử E2E Phase 5**: Chạy script `src/scripts/testE2EPhase5.ts` đạt kết quả 6/6 test passed 100%.
 
 ---
 
