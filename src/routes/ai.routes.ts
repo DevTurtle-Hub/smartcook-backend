@@ -1,19 +1,19 @@
 import { Router } from "express";
 import { aiController } from "../controllers/ai.controller";
-import { authenticate, optionalAuthenticate } from "../middlewares/auth";
+import { authenticate } from "../middlewares/auth";
 import { uploadSingleImage } from "../middlewares/upload";
 
 const router = Router();
 
+// Tất cả các endpoints AI bắt buộc đăng nhập
+router.use(authenticate);
+
 /**
  * @route   POST /api/v1/ai/assistant-chat
  * @desc    Chat with AI Chef Assistant with fridge & user preferences context
- * @access  Public / Optional Authenticated
+ * @access  Private
  */
-router.post("/assistant-chat", optionalAuthenticate, aiController.assistantChat);
-
-// Endpoints yêu cầu đăng nhập
-router.use(authenticate);
+router.post("/assistant-chat", aiController.assistantChat);
 
 /**
  * @route   POST /api/v1/ai/scan-ingredients
