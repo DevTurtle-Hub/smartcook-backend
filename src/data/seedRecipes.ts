@@ -199,7 +199,7 @@ export const INITIAL_RECIPES = [
     badge: "⏱️ Nấu nhanh 20 phút",
     sub: "Trẻ em yêu thích",
     tags: ["Món Ý", "Nấu nhanh", "Bữa trưa"],
-    image: "https://images.unsplash.com/photo-1621996346565-e3d5d6281541?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1622973536968-3ead9e780960?w=800&q=80",
     description: "Sợi mỳ Ý luộc chuẩn al dente đẫm sốt bò bằm cà chua thơm nồng thảo mộc, phủ lớp phô mai béo ngậy khó cưỡng.",
     ingredients: [
       { name: "Mỳ Ý (Spaghetti)", amount: "250g" },
@@ -254,7 +254,7 @@ export const INITIAL_RECIPES = [
     badge: "🇻🇳 Món Việt cơm nhà",
     sub: "Tiết kiệm • Thanh đạm",
     tags: ["Món Việt", "Cơm gia đình", "Tiết kiệm"],
-    image: "https://images.unsplash.com/photo-1546069901-d8a9599a7e63?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
     description: "Miếng đậu hũ vàng giòn nhồi thịt xay nấm hương thơm lừng, rim đẫm trong sốt cà chua chua ngọt mặn mà đưa cơm.",
     ingredients: [
       { name: "Đậu hũ trắng", amount: "4 miếng" },
