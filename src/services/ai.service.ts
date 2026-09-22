@@ -291,12 +291,13 @@ Lưu ý:
   ): Promise<AssistantChatResponse> {
     try {
       // 1. Context Injection: Get user preferences
-      const user = await userRepository.findById(userId);
+      const isGuest = !userId || userId === "guest";
+      const user = !isGuest ? await userRepository.findById(userId).catch(() => null) : null;
       const preferences = user?.preferences;
 
       // 2. Context Injection: Get user fridge items
-      const fridge = await fridgeRepository.getOrCreateFridge(userId);
-      const fridgeIngredientNames = (fridge.items || [])
+      const fridge = !isGuest ? await fridgeRepository.getOrCreateFridge(userId).catch(() => null) : null;
+      const fridgeIngredientNames = (fridge?.items || [])
         .map((it) => `${it.name}${it.amount ? ` (${it.amount})` : ""}`)
         .join(", ");
 
