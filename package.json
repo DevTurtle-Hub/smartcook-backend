@@ -10,7 +10,8 @@
     "test:e2e:phase3": "tsx src/scripts/testE2EPhase3.ts",
     "test:e2e:phase4": "tsx src/scripts/testE2EPhase4.ts",
     "test:e2e:phase5": "tsx src/scripts/testE2EPhase5.ts",
-    "test:e2e:phase6": "tsx src/scripts/testE2EPhase6.ts"
+    "test:e2e:phase6": "tsx src/scripts/testE2EPhase6.ts",
+    "test:e2e:phase7": "tsx src/scripts/testE2EPhase7.ts"
   },
   "keywords": [],
   "author": "",

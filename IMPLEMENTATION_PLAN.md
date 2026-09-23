@@ -617,31 +617,37 @@ Dự án áp dụng mô hình **Hybrid All-in-One (Public Showcase & User Web Ap
 
 ---
 
-### Giai đoạn 7: Kế Hoạch Bữa Ăn (Meal Planner), Giỏ Đi Chợ Tự Động & Định Vị Siêu Thị GPS
-- [ ] **7.1. Module Kế Hoạch Bữa Ăn & Giỏ Đi Chợ Thông Minh (`/api/v1/planner`)**:
-  - [ ] Tạo Model `MealPlan.ts` (lưu thực đơn tuần 7 ngày, các slot sáng/trưa/tối) & `CartItem.ts` khớp giao diện `PlannerView.tsx`.
-  - [ ] Triển khai các Endpoints:
-    - `GET /api/v1/planner/current-week`: Lấy thực đơn 7 ngày của tuần hiện tại (Bữa sáng, Bữa trưa, Bữa tối, Bữa phụ).
+### Giai đoạn 7: Kế Hoạch Bữa Ăn (Meal Planner), Giỏ Đi Chợ Tự Động & Định Vị Siêu Thị GPS [ĐÃ HOÀN THÀNH 100%]
+- [x] **7.1. Module Kế Hoạch Bữa Ăn & Giỏ Đi Chợ Thông Minh (`/api/v1/planner`)**:
+  - [x] Tạo Model `MealPlan.ts` (lưu thực đơn tuần 7 ngày, các slot sáng/trưa/tối) & `CartItem.ts` khớp giao diện `PlannerView.tsx`.
+  - [x] Triển khai các Endpoints:
+    - `GET /api/v1/planner/current-week`: Lấy thực đơn 7 ngày của tuần hiện tại (Bữa sáng, Bữa trưa, Bữa tối, Bữa phụ kèm tổng calo từng ngày).
     - `PUT /api/v1/planner/meals`: Thêm/sửa món ăn cho một slot bữa ăn trong tuần.
+    - `DELETE /api/v1/planner/meals`: Xoá một món ăn khỏi slot bữa ăn.
     - `GET /api/v1/planner/shopping-list`: **Thuật toán tự động sinh danh mục đi chợ thông minh**:
       - Tổng hợp toàn bộ nguyên liệu cần dùng trong 7 ngày thực đơn.
       - Sử dụng `normalizeVietnamese` và đối chiếu từ đồng nghĩa `aliases` để đối chiếu với kho thực phẩm `UserFridge`.
       - Tự động trừ đi các nguyên liệu đã có sẵn trong tủ lạnh:
         $$\text{Danh mục đi chợ} = \sum \text{Nguyên liệu thực đơn tuần} - \text{Nguyên liệu có trong UserFridge}$$
+    - `POST /api/v1/planner/shopping-list`: Thêm thủ công nguyên liệu vào giỏ hàng.
     - `PATCH /api/v1/planner/shopping-list/:id/bought`: Đánh dấu nguyên liệu đã mua xong (`bought: true/false`).
+    - `DELETE /api/v1/planner/shopping-list/:id`: Xoá mục đi chợ.
+    - `DELETE /api/v1/planner/shopping-list/clear-bought`: Dọn dẹp tất cả các mục đã mua xong.
     - `POST /api/v1/planner/sync-to-fridge`: **Đồng bộ giỏ hàng vào tủ lạnh**: Chuyển các nguyên liệu đã mua (`bought: true`) trực tiếp vào `UserFridge`.
-  - [ ] Viết Swagger docs `src/docs/planner.swagger.ts`.
-- [ ] **7.2. Module Định Vị Siêu Thị Lân Cận GPS (`/api/v1/stores`)**:
-  - [ ] Tạo Model `Store.ts` với chỉ mục GeoJSON `location: "2dsphere"`.
-  - [ ] Viết Seed script `src/data/seedStores.ts`: Nạp dữ liệu 10 chuỗi siêu thị phổ biến thực tế tại Việt Nam (WinMart+, Co.opmart, Tops Market, Bách Hóa Xanh, Annam Gourmet, Lotte Mart, Emart...) kèm toạ độ GPS chính xác tại TP.HCM và Hà Nội.
-  - [ ] Triển khai Endpoint `GET /api/v1/stores/nearby`:
+  - [x] Viết Swagger docs `src/docs/planner.swagger.ts`.
+- [x] **7.2. Module Định Vị Siêu Thị Lân Cận GPS (`/api/v1/stores`)**:
+  - [x] Tạo Model `Store.ts` với chỉ mục GeoJSON `location: "2dsphere"`.
+  - [x] Viết Seed script `src/data/seedStores.ts`: Nạp dữ liệu 10 chuỗi siêu thị phổ biến thực tế tại Việt Nam (WinMart+, Co.opmart, Tops Market, Bách Hóa Xanh, Annam Gourmet, Lotte Mart, Emart...) kèm toạ độ GPS chính xác tại TP.HCM.
+  - [x] Triển khai Endpoint `GET /api/v1/stores/nearby`:
     - Tiếp nhận toạ độ GPS `lat` và `lng` từ thiết bị người dùng.
     - Sử dụng toán tử MongoDB `$geoNear` để tìm các siêu thị trong bán kính lân cận sắp xếp theo khoảng cách tăng dần.
     - Tự động tính toán và trả về:
       - `distanceKm`: Khoảng cách tính theo km (làm tròn 1 chữ số thập phân).
-      - `travelTimeMotoMinutes = Math.round(distanceKm * 2.5) + 2`: Thời gian di chuyển ước tính bằng xe máy.
-      - `travelTimeWalkMinutes = Math.round(distanceKm * 12) + 5`: Thời gian đi bộ ước tính.
-  - [ ] Viết Swagger docs `src/docs/store.swagger.ts` và test script tự động `src/scripts/testE2EPhase7.ts`.
+      - `travelTimeMotoMinutes = Math.max(1, Math.round((distanceKm / 25) * 60))`: Thời gian di chuyển ước tính bằng xe máy.
+      - `travelTimeWalkMinutes = Math.max(1, Math.round((distanceKm / 4.5) * 60))`: Thời gian đi bộ ước tính.
+  - [x] Triển khai Endpoints xem chi tiết siêu thị `GET /api/v1/stores/:id` và danh sách tất cả `GET /api/v1/stores`.
+  - [x] Viết Swagger docs `src/docs/store.swagger.ts` và test script tự động `src/scripts/testE2EPhase7.ts`.
+- [x] **Kiểm thử E2E Phase 7**: Chạy script `npm run test:e2e:phase7` đạt kết quả 6/6 test passed 100%.
 
 ---
 

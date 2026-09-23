@@ -10,6 +10,8 @@ import cookingHistoryRoutes from "./cookingHistory.route";
 import aiRoutes from "./ai.routes";
 import communityRoutes from "./community.route";
 import chatRoutes from "./chat.route";
+import plannerRoutes from "./planner.route";
+import storeRoutes from "./store.route";
 
 const router = Router();
 
@@ -30,5 +32,9 @@ router.use("/community/posts", communityRoutes);
 
 // Realtime Chat & Conversations
 router.use("/chat", chatRoutes);
+
+// Phase 7: Meal Planner, Smart Shopping List & Stores
+router.use("/planner", plannerRoutes);
+router.use("/stores", storeRoutes);
 
 export default router;

@@ -76,6 +76,10 @@ export class RecipeRepository {
     return Recipe.findById(id).exec();
   }
 
+  async findByTitle(title: string): Promise<IRecipe | null> {
+    return Recipe.findOne({ title: { $regex: new RegExp(`^${title.trim()}$`, "i") } }).exec();
+  }
+
   async getAllActive(): Promise<IRecipe[]> {
     return Recipe.find({ isActive: true }).exec();
   }
