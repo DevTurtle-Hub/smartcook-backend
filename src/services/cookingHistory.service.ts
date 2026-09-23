@@ -75,10 +75,21 @@ export class CookingHistoryService {
     user.level = newLevel;
     await user.save();
 
+    // Safely parse recipeId (supports both 24-hex ObjectId and mock/custom IDs from mobile)
+    let validRecipeId: mongoose.Types.ObjectId;
+    if (mongoose.Types.ObjectId.isValid(input.recipeId)) {
+      validRecipeId = new mongoose.Types.ObjectId(input.recipeId);
+    } else {
+      const existingRecipe = await recipeRepository.findByTitle(input.recipeName);
+      validRecipeId = existingRecipe
+        ? (existingRecipe._id as mongoose.Types.ObjectId)
+        : new mongoose.Types.ObjectId();
+    }
+
     // Create history record
     const historyItem = await cookingHistoryRepository.create({
       userId: new mongoose.Types.ObjectId(userId),
-      recipeId: new mongoose.Types.ObjectId(input.recipeId),
+      recipeId: validRecipeId,
       recipeName: input.recipeName,
       image: finalImage,
       durationMinutes: input.durationMinutes,
