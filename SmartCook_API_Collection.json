@@ -1,485 +1,414 @@
 {
   "info": {
-    "_postman_id": "smartcook-api-collection-v1",
-    "name": "SmartCook Backend API",
-    "description": "Postman Collection hoàn chỉnh cho các API hệ thống SmartCook v1 (Auth, Profile, Survey, Health)",
+    "_postman_id": "7a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d",
+    "name": "SmartCook Production API Collection (Phases 1-7)",
+    "description": "Toàn bộ tài liệu kiểm thử và kết nối API hệ sinh thái SmartCook Backend chuẩn Production (Node.js, Express, MongoDB Atlas, Socket.io, Gemini AI & Cloudinary).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
-      "key": "base_url",
+      "key": "baseUrl",
       "value": "http://localhost:5000/api/v1",
       "type": "string"
     },
     {
-      "key": "access_token",
+      "key": "token",
       "value": "",
       "type": "string"
     },
     {
-      "key": "refresh_token",
+      "key": "adminToken",
       "value": "",
       "type": "string"
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
-      "name": "0. System Health Check",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/health",
-          "host": ["{{base_url}}"],
-          "path": ["health"]
-        },
-        "description": "Kiểm tra tình trạng server và kết nối MongoDB Atlas"
-      },
-      "response": []
-    },
-    {
-      "name": "1. Register (Đăng ký)",
-      "event": [
+      "name": "1. Authentication & Onboarding",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 201) {",
-              "    const json = pm.response.json();",
-              "    if (json.data && json.data.tokens) {",
-              "        pm.collectionVariables.set('access_token', json.data.tokens.accessToken);",
-              "        pm.collectionVariables.set('refresh_token', json.data.tokens.refreshToken);",
-              "        console.log('Tokens saved to collection variables automatically!');",
-              "    }",
-              "}"
-            ],
-            "type": "text/javascript"
+          "name": "Register New Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Hoàng\",\n  \"lastName\": \"Minh\",\n  \"email\": \"chef@smartcook.com\",\n  \"password\": \"Password123@\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"chef@smartcook.com\",\n  \"password\": \"Password123@\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Silent Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["auth", "refresh-token"] }
+          }
+        },
+        {
+          "name": "Get Profile Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Update Onboarding Survey",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"portion\": \"3-4\",\n  \"cuisines\": [\"vietnamese\", \"healthy\"],\n  \"healthGoal\": \"healthy\",\n  \"restrictions\": [\"no-spicy\"],\n  \"tasteProfile\": [\"dam-da\"],\n  \"cookingTime\": \"quick\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/survey", "host": ["{{baseUrl}}"], "path": ["auth", "survey"] }
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"firstName\": \"Văn Lợi\",\n  \"lastName\": \"Đinh\",\n  \"email\": \"loi.dinh@smartcook.vn\",\n  \"password\": \"SmartCook@2026\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/auth/register",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "register"]
-        },
-        "description": "Tạo tài khoản mới. Tự động lưu access_token và refresh_token vào biến collection."
-      },
-      "response": []
+      ]
     },
     {
-      "name": "2. Login (Đăng nhập)",
-      "event": [
+      "name": "2. Categories & Ingredients Master Data",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "    const json = pm.response.json();",
-              "    if (json.data && json.data.tokens) {",
-              "        pm.collectionVariables.set('access_token', json.data.tokens.accessToken);",
-              "        pm.collectionVariables.set('refresh_token', json.data.tokens.refreshToken);",
-              "        console.log('Login tokens saved to collection variables!');",
-              "    }",
-              "}"
-            ],
-            "type": "text/javascript"
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Search Ingredients (14 Groups)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ingredients?category=meat&search=gà",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingredients"],
+              "query": [
+                { "key": "category", "value": "meat" },
+                { "key": "search", "value": "gà" }
+              ]
+            }
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"loi.dinh@smartcook.vn\",\n  \"password\": \"SmartCook@2026\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/auth/login",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "login"]
-        },
-        "description": "Đăng nhập và tự động cập nhật access_token và refresh_token mới."
-      },
-      "response": []
+      ]
     },
     {
-      "name": "2.1 Google Sign-In (Đăng nhập bằng Google)",
-      "event": [
+      "name": "3. Smart Fridge Management",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "    const json = pm.response.json();",
-              "    if (json.data && json.data.tokens) {",
-              "        pm.collectionVariables.set('access_token', json.data.tokens.accessToken);",
-              "        pm.collectionVariables.set('refresh_token', json.data.tokens.refreshToken);",
-              "        console.log('Google Auth tokens saved to collection variables!');",
-              "    }",
-              "}"
-            ],
-            "type": "text/javascript"
+          "name": "Get User Fridge Items",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/fridge/my-fridge", "host": ["{{baseUrl}}"], "path": ["fridge", "my-fridge"] }
+          }
+        },
+        {
+          "name": "Add Item to Fridge",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Thịt ức gà\",\n  \"amount\": \"500g\",\n  \"category\": \"meat\",\n  \"storageLocation\": \"chilled\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/fridge/items", "host": ["{{baseUrl}}"], "path": ["fridge", "items"] }
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"idToken\": \"PASTE_YOUR_GOOGLE_ID_TOKEN_HERE\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/auth/google",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "google"]
-        },
-        "description": "Gửi idToken nhận được từ Google Sign-In SDK lên backend để xác thực và nhận JWT tokens."
-      },
-      "response": []
+      ]
     },
     {
-      "name": "3. Get Profile (Thông tin cá nhân)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/auth/me",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "me"]
-        },
-        "description": "Lấy thông tin profile, cấp bậc đầu bếp, kinh nghiệm XP và khẩu vị cá nhân."
-      },
-      "response": []
-    },
-    {
-      "name": "4. Save Onboarding Survey (Lưu khẩu vị)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"portion\": \"3-4\",\n  \"cuisines\": [\"vietnamese\", \"healthy\", \"quick\"],\n  \"healthGoal\": \"healthy\",\n  \"restrictions\": [\"no-spicy\"],\n  \"tasteProfile\": [\"dam-da\", \"thanh-dam\"],\n  \"cookingTime\": \"medium\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/auth/survey",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "survey"]
-        },
-        "description": "Lưu 6 câu hỏi khảo sát khẩu vị Onboarding từ Mobile App."
-      },
-      "response": []
-    },
-    {
-      "name": "5. Update Profile (Cập nhật hồ sơ)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"firstName\": \"Văn Lợi\",\n  \"lastName\": \"Đinh (Master Chef)\",\n  \"avatar\": \"https://res.cloudinary.com/ynikavd2/image/upload/sample.jpg\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/auth/profile",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "profile"]
-        },
-        "description": "Cập nhật tên và ảnh đại diện."
-      },
-      "response": []
-    },
-    {
-      "name": "6. Refresh Token (Xoay vòng Token)",
-      "event": [
+      "name": "4. Recipes & Fridge Match",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "    const json = pm.response.json();",
-              "    if (json.data && json.data.accessToken) {",
-              "        pm.collectionVariables.set('access_token', json.data.accessToken);",
-              "        pm.collectionVariables.set('refresh_token', json.data.refreshToken);",
-              "        console.log('Rotated tokens updated in collection variables!');",
-              "    }",
-              "}"
-            ],
-            "type": "text/javascript"
+          "name": "Get Recipes List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/recipes?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["recipes"] }
+          }
+        },
+        {
+          "name": "Get Fridge Matched Recipes (Ranked %)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/recipes/fridge-match?limit=10", "host": ["{{baseUrl}}"], "path": ["recipes", "fridge-match"] }
+          }
+        },
+        {
+          "name": "Create Custom Recipe (User / Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Gà Nướng Mật Ong Tiêu Xanh\",\n  \"categoryCode\": \"quick\",\n  \"minutes\": 30,\n  \"difficulty\": \"Dễ\",\n  \"calories\": 480,\n  \"description\": \"Món gà nướng vàng giòn thơm lừng\",\n  \"ingredients\": [\n    { \"name\": \"Thịt đùi gà\", \"amount\": \"400g\" },\n    { \"name\": \"Mật ong\", \"amount\": \"2 muỗng\" }\n  ],\n  \"steps\": [\n    { \"stepNumber\": 1, \"title\": \"Ướp gà\", \"description\": \"Ướp mật ong và tiêu trong 15 phút\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/recipes", "host": ["{{baseUrl}}"], "path": ["recipes"] }
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+      ]
+    },
+    {
+      "name": "5. Chef XP & Cooking History",
+      "item": [
+        {
+          "name": "Record Cooked Dish (+50 XP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipeId\": \"6ab0fe5e2aec9ea6b60b19bf\",\n  \"recipeName\": \"Canh Chua Cá Hồi\",\n  \"durationMinutes\": 25,\n  \"servings\": 2,\n  \"calories\": 420\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/cooking-history", "host": ["{{baseUrl}}"], "path": ["cooking-history"] }
           }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
         },
-        "url": {
-          "raw": "{{base_url}}/auth/refresh-token",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "refresh-token"]
-        },
-        "description": "Lấy cặp Access Token + Refresh Token mới khi phiên cũ hết hạn."
-      },
-      "response": []
+        {
+          "name": "Get Cooking History List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/cooking-history?limit=10", "host": ["{{baseUrl}}"], "path": ["cooking-history"] }
+          }
+        }
+      ]
     },
     {
-      "name": "7. Logout (Đăng xuất)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
+      "name": "6. Gemini AI Vision & Chatbot",
+      "item": [
+        {
+          "name": "Scan Tabletop / Fridge Ingredients (Gemini Vision)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/ai/scan-ingredients", "host": ["{{baseUrl}}"], "path": ["ai", "scan-ingredients"] }
+          }
+        },
+        {
+          "name": "AI Chef Assistant Chat (Injected Fridge Context)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Tủ lạnh mình có gà và cà chua, làm món gì ngon nhanh gọn?\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/ai/assistant-chat", "host": ["{{baseUrl}}"], "path": ["ai", "assistant-chat"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Community Social Feed & Reactions",
+      "item": [
+        {
+          "name": "Get Community Posts Feed",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/posts?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["posts"] }
+          }
+        },
+        {
+          "name": "Create Community Post",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Cơm Gà Da Giòn Cuối Tuần", "type": "text" },
+                { "key": "caption", "value": "Công thức nướng nồi chiên không dầu thơm ngon!", "type": "text" },
+                { "key": "tags", "value": "[\"#MonNgon\", \"#EatClean\"]", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/posts", "host": ["{{baseUrl}}"], "path": ["posts"] }
+          }
+        },
+        {
+          "name": "Like / React to Post",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/posts/:id/like", "host": ["{{baseUrl}}"], "path": ["posts", ":id", "like"] }
+          }
+        },
+        {
+          "name": "Add Comment to Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Món ăn nhìn hấp dẫn quá bạn ơi!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/posts/:id/comments", "host": ["{{baseUrl}}"], "path": ["posts", ":id", "comments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Realtime Chat & Socket.io Gateway",
+      "item": [
+        {
+          "name": "Get Seeded Chat Rooms",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/chat/rooms", "host": ["{{baseUrl}}"], "path": ["chat", "rooms"] }
+          }
+        },
+        {
+          "name": "Get Direct Conversations",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/chat/conversations", "host": ["{{baseUrl}}"], "path": ["chat", "conversations"] }
+          }
+        },
+        {
+          "name": "Get Conversation Messages History",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/chat/conversations/:id/messages", "host": ["{{baseUrl}}"], "path": ["chat", "conversations", ":id", "messages"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Meal Planner & Smart Shopping List",
+      "item": [
+        {
+          "name": "Get Current Week Plan",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/planner/current-week", "host": ["{{baseUrl}}"], "path": ["planner", "current-week"] }
+          }
+        },
+        {
+          "name": "Set Meal Slot for Day",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"Thứ 2\",\n  \"slot\": \"Bữa Trưa\",\n  \"time\": \"12:00\",\n  \"customTitle\": \"Cơm Gà Áp Chảo\",\n  \"calories\": 550\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/planner/meals", "host": ["{{baseUrl}}"], "path": ["planner", "meals"] }
+          }
+        },
+        {
+          "name": "Get Smart Shopping List (Fridge Deducted)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/planner/shopping-list", "host": ["{{baseUrl}}"], "path": ["planner", "shopping-list"] }
+          }
+        },
+        {
+          "name": "Toggle Item Bought Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bought\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/planner/shopping-list/:id/bought", "host": ["{{baseUrl}}"], "path": ["planner", "shopping-list", ":id", "bought"] }
+          }
+        },
+        {
+          "name": "1-Click Sync Bought Items to Fridge",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/planner/sync-to-fridge", "host": ["{{baseUrl}}"], "path": ["planner", "sync-to-fridge"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. GPS Nearby Stores ($geoNear 2dsphere)",
+      "item": [
+        {
+          "name": "Find Nearby Supermarkets by GPS",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stores/nearby?lat=10.7769&lng=106.6909&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["stores", "nearby"],
+              "query": [
+                { "key": "lat", "value": "10.7769" },
+                { "key": "lng", "value": "106.6909" },
+                { "key": "limit", "value": "5" }
+              ]
             }
-          ]
+          }
         },
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/auth/logout",
-          "host": ["{{base_url}}"],
-          "path": ["auth", "logout"]
-        },
-        "description": "Đăng xuất và thu hồi Refresh Token trên server."
-      },
-      "response": []
+        {
+          "name": "Get All Stores List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/stores", "host": ["{{baseUrl}}"], "path": ["stores"] }
+          }
+        }
+      ]
     },
     {
-      "name": "8. Get Categories (Danh sách danh mục món ăn)",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/categories",
-          "host": ["{{base_url}}"],
-          "path": ["categories"]
+      "name": "11. Web Admin Management",
+      "item": [
+        {
+          "name": "Admin KPI Dashboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/dashboard", "host": ["{{baseUrl}}"], "path": ["admin", "dashboard"] }
+          }
         },
-        "description": "Lấy danh sách các danh mục món ăn (Gia đình, Healthy, Nấu nhanh < 20p, Ăn chay, Món Việt...)"
-      },
-      "response": []
-    },
-    {
-      "name": "9. Search Ingredients (Tìm kiếm & Lọc nguyên liệu chuẩn)",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/ingredients?search=ga&category=meat",
-          "host": ["{{base_url}}"],
-          "path": ["ingredients"],
-          "query": [
-            { "key": "search", "value": "ga" },
-            { "key": "category", "value": "meat" }
-          ]
+        {
+          "name": "Admin Users List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/users?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["admin", "users"] }
+          }
         },
-        "description": "Tìm kiếm nguyên liệu theo tên, từ đồng nghĩa hoặc theo 14 nhóm danh mục."
-      },
-      "response": []
-    },
-    {
-      "name": "10. Get My Fridge (Xem nguyên liệu trong tủ lạnh)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/fridge/my-fridge",
-          "host": ["{{base_url}}"],
-          "path": ["fridge", "my-fridge"]
-        },
-        "description": "Lấy danh sách nguyên liệu người dùng đang có trong tủ lạnh / ngăn đông / tủ khô."
-      },
-      "response": []
-    },
-    {
-      "name": "11. Add Item to Fridge (Thêm đồ vào tủ lạnh)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Đùi gà\",\n  \"amount\": \"500g\",\n  \"category\": \"meat\",\n  \"storageLocation\": \"chilled\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/fridge/items",
-          "host": ["{{base_url}}"],
-          "path": ["fridge", "items"]
-        },
-        "description": "Thêm một nguyên liệu mới vào tủ lạnh."
-      },
-      "response": []
-    },
-    {
-      "name": "12. Discover Recipes (Khám phá & Lọc công thức)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/recipes?category=family&maxMinutes=30",
-          "host": ["{{base_url}}"],
-          "path": ["recipes"],
-          "query": [
-            { "key": "category", "value": "family" },
-            { "key": "maxMinutes", "value": "30" }
-          ]
-        },
-        "description": "Khám phá danh sách công thức, lọc theo danh mục, thời gian nấu, độ khó và tìm kiếm."
-      },
-      "response": []
-    },
-    {
-      "name": "13. Smart Fridge Match (Gợi ý món ăn theo % khớp tủ lạnh)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/recipes/fridge-match?limit=10",
-          "host": ["{{base_url}}"],
-          "path": ["recipes", "fridge-match"],
-          "query": [
-            { "key": "limit", "value": "10" }
-          ]
-        },
-        "description": "Thuật toán so khớp nguyên liệu trong tủ lạnh với công thức món ăn, xếp hạng các món nấu được ngay lên đầu."
-      },
-      "response": []
-    },
-    {
-      "name": "14. Toggle Favorite Recipe (Yêu thích món ăn)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{access_token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/recipes/{{recipe_id}}/favorite",
-          "host": ["{{base_url}}"],
-          "path": ["recipes", "{{recipe_id}}", "favorite"]
-        },
-        "description": "Bật / tắt trạng thái yêu thích của một món ăn cho tài khoản hiện tại."
-      },
-      "response": []
+        {
+          "name": "Update User Status (Lock/Unlock)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/admin/users/:userId/status", "host": ["{{baseUrl}}"], "path": ["admin", "users", ":userId", "status"] }
+          }
+        }
+      ]
     }
   ]
 }
-
