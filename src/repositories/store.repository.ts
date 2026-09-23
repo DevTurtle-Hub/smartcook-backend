@@ -60,9 +60,11 @@ export class StoreRepository {
         const storeLng = s.location.coordinates[0];
         const storeLat = s.location.coordinates[1];
         const dist = this.calculateHaversineMeters(lat, lng, storeLat, storeLng);
-        const obj = s.toObject();
-        obj.distanceMeters = dist;
-        return obj;
+        const obj = s.toObject ? s.toObject() : (s as any);
+        return {
+          ...obj,
+          distanceMeters: dist,
+        };
       });
 
       mapped.sort((a, b) => a.distanceMeters - b.distanceMeters);
