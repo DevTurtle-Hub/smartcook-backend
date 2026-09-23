@@ -5,11 +5,20 @@ import { normalizeVietnamese } from "../utils/text";
 export class FridgeRepository {
   async getOrCreateFridge(userId: string): Promise<IUserFridge> {
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    let fridge = await UserFridge.findOne({ userId: userObjectId }).exec();
-    if (!fridge) {
-      fridge = await UserFridge.create({ userId: userObjectId, items: [] });
+    try {
+      const fridge = await UserFridge.findOneAndUpdate(
+        { userId: userObjectId },
+        { $setOnInsert: { userId: userObjectId, items: [] } },
+        { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
+      ).exec();
+      return fridge!;
+    } catch (err: any) {
+      if (err.code === 11000) {
+        const existing = await UserFridge.findOne({ userId: userObjectId }).exec();
+        if (existing) return existing;
+      }
+      throw err;
     }
-    return fridge;
   }
 
   async addItem(userId: string, item: Partial<IFridgeItem>): Promise<IUserFridge> {
@@ -46,6 +55,7 @@ export class FridgeRepository {
 
   async removeItem(userId: string, itemId: string): Promise<IUserFridge | null> {
     const userObjectId = new mongoose.Types.ObjectId(userId);
+    if (!mongoose.Types.ObjectId.isValid(itemId)) return null;
     const itemObjectId = new mongoose.Types.ObjectId(itemId);
 
     return UserFridge.findOneAndUpdate(

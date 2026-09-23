@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Recipe, { IRecipe, RecipeDifficulty } from "../models/Recipe";
 import { normalizeVietnamese } from "../utils/text";
 
@@ -69,6 +70,9 @@ export class RecipeRepository {
   }
 
   async findById(id: string): Promise<IRecipe | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
     return Recipe.findById(id).exec();
   }
 
@@ -82,6 +86,9 @@ export class RecipeRepository {
   }
 
   async update(id: string, data: Partial<IRecipe>): Promise<IRecipe | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
     return Recipe.findByIdAndUpdate(id, data, {
       returnDocument: "after",
       runValidators: true,
@@ -89,6 +96,9 @@ export class RecipeRepository {
   }
 
   async delete(id: string): Promise<IRecipe | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
     return Recipe.findByIdAndDelete(id).exec();
   }
 

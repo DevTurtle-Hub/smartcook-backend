@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User, { IUser, IUserPreferences } from "../models/User";
 
 export class UserRepository {
@@ -10,6 +11,7 @@ export class UserRepository {
   }
 
   async findById(id: string, selectRefreshToken = false): Promise<IUser | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const query = User.findById(id);
     if (selectRefreshToken) {
       query.select("+refreshToken");

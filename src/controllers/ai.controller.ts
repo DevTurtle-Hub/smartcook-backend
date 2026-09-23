@@ -87,7 +87,7 @@ export class AIController {
    * POST /api/v1/ai/assistant-chat
    */
   assistantChat = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user!._id.toString();
+    const userId = req.user?._id ? req.user._id.toString() : "guest";
     const { message, conversationHistory } = req.body;
 
     if (!message || typeof message !== "string" || !message.trim()) {

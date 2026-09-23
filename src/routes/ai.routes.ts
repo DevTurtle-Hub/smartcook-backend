@@ -5,8 +5,15 @@ import { uploadSingleImage } from "../middlewares/upload";
 
 const router = Router();
 
-// All AI endpoints require authentication
+// Tất cả các endpoints AI bắt buộc đăng nhập
 router.use(authenticate);
+
+/**
+ * @route   POST /api/v1/ai/assistant-chat
+ * @desc    Chat with AI Chef Assistant with fridge & user preferences context
+ * @access  Private
+ */
+router.post("/assistant-chat", aiController.assistantChat);
 
 /**
  * @route   POST /api/v1/ai/scan-ingredients
@@ -28,12 +35,5 @@ router.get("/scan-history", aiController.getScanHistory);
  * @access  Private
  */
 router.delete("/scan-history/:id", aiController.deleteScanHistory);
-
-/**
- * @route   POST /api/v1/ai/assistant-chat
- * @desc    Chat with AI Chef Assistant with fridge & user preferences context
- * @access  Private
- */
-router.post("/assistant-chat", aiController.assistantChat);
 
 export default router;

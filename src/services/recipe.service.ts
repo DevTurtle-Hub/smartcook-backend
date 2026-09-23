@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { recipeRepository, RecipeFilter } from "../repositories/recipe.repository";
 import { fridgeRepository } from "../repositories/fridge.repository";
 import { userRepository } from "../repositories/user.repository";
@@ -61,6 +62,10 @@ export class RecipeService {
   }
 
   async getRecipeById(id: string, userId?: string) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw new NotFoundError(`Recipe with id '${id}' not found`);
+    }
+
     const recipe = await recipeRepository.findById(id);
     if (!recipe) {
       throw new NotFoundError("Recipe not found");
@@ -204,6 +209,10 @@ export class RecipeService {
     userId: string,
     recipeId: string
   ): Promise<{ isFavorite: boolean }> {
+    if (!recipeId || !mongoose.Types.ObjectId.isValid(recipeId)) {
+      throw new NotFoundError("Recipe not found");
+    }
+
     const user = await userRepository.findById(userId);
     if (!user) {
       throw new NotFoundError("User not found");
@@ -231,6 +240,10 @@ export class RecipeService {
     data: Partial<IRecipe>,
     currentUser?: any
   ): Promise<IRecipe> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw new NotFoundError("Recipe not found");
+    }
+
     const existing = await recipeRepository.findById(id);
     if (!existing) {
       throw new NotFoundError("Recipe not found");
@@ -249,6 +262,10 @@ export class RecipeService {
   }
 
   async deleteRecipe(id: string, currentUser?: any): Promise<void> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw new NotFoundError("Recipe not found");
+    }
+
     const existing = await recipeRepository.findById(id);
     if (!existing) {
       throw new NotFoundError("Recipe not found");
