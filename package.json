@@ -7,11 +7,14 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "test:e2e:phase1": "tsx src/scripts/testE2EPhase1.ts",
+    "test:e2e:phase2": "tsx src/scripts/testE2EPhase2.ts",
     "test:e2e:phase3": "tsx src/scripts/testE2EPhase3.ts",
     "test:e2e:phase4": "tsx src/scripts/testE2EPhase4.ts",
     "test:e2e:phase5": "tsx src/scripts/testE2EPhase5.ts",
     "test:e2e:phase6": "tsx src/scripts/testE2EPhase6.ts",
-    "test:e2e:phase7": "tsx src/scripts/testE2EPhase7.ts"
+    "test:e2e:phase7": "tsx src/scripts/testE2EPhase7.ts",
+    "test:e2e:phase8": "tsx src/scripts/testE2EPhase8.ts"
   },
   "keywords": [],
   "author": "",
