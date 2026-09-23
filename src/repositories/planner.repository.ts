@@ -226,7 +226,7 @@ export class PlannerRepository {
         userId: new mongoose.Types.ObjectId(userId),
       },
       { bought },
-      { new: true }
+      { returnDocument: "after" }
     );
   }
 

@@ -177,20 +177,32 @@ export class PlannerService {
     const monday = plannerRepository.normalizeToMonday(weekDate);
     const plan = await plannerRepository.getOrCreatePlan(userId, monday);
 
-    // 1. Collect all recipes from the weekly plan
-    const recipeIds: string[] = [];
+    // 1. Collect all recipes from the weekly plan (handle both populated object and raw ObjectId)
+    const recipeList: any[] = [];
+    const recipeIdsToFetch: string[] = [];
+
     plan.days.forEach((day) => {
       day.meals.forEach((m) => {
         if (m.recipeId) {
-          recipeIds.push(m.recipeId.toString());
+          const rObj = (m.recipeId as any).toObject ? (m.recipeId as any).toObject() : m.recipeId;
+          if (rObj.ingredients && Array.isArray(rObj.ingredients)) {
+            recipeList.push(rObj);
+          } else {
+            const rawId = rObj._id ? rObj._id.toString() : rObj.toString();
+            recipeIdsToFetch.push(rawId);
+          }
         }
       });
     });
 
-    // 2. Fetch full recipe documents with ingredients
-    const recipes = await Promise.all(
-      Array.from(new Set(recipeIds)).map((id) => recipeRepository.findById(id))
-    );
+    if (recipeIdsToFetch.length > 0) {
+      const fetched = await Promise.all(
+        Array.from(new Set(recipeIdsToFetch)).map((id) => recipeRepository.findById(id))
+      );
+      recipeList.push(...fetched.filter(Boolean));
+    }
+
+    const recipes = recipeList;
 
     // 3. Aggregate required ingredients across all planned meals
     interface NeededIngredient {
