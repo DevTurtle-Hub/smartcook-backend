@@ -120,6 +120,29 @@ export class CommunityController {
     await communityService.deletePost(id, userId, userRole);
     ApiResponse.success(res, null, "Xoá bài viết thành công");
   });
+
+  /**
+   * PATCH /api/v1/posts/:id/pin (Admin only)
+   */
+  togglePin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params as { id: string };
+    const userRole = (req.user as any)?.role || "user";
+
+    const post = await communityService.togglePin(id, userRole);
+    ApiResponse.success(res, post, "Cập nhật trạng thái ghim bài viết thành công");
+  });
+
+  /**
+   * PATCH /api/v1/posts/:id/status (Admin only)
+   */
+  updateStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params as { id: string };
+    const { status } = req.body;
+    const userRole = (req.user as any)?.role || "user";
+
+    const post = await communityService.updateStatus(id, status, userRole);
+    ApiResponse.success(res, post, "Cập nhật trạng thái kiểm duyệt thành công");
+  });
 }
 
 export const communityController = new CommunityController();

@@ -61,4 +61,18 @@ router.get("/:id/comments", communityController.getComments);
  */
 router.delete("/:id", authenticate, communityController.deletePost);
 
+/**
+ * @route   PATCH /api/v1/posts/:id/pin
+ * @desc    Toggle pin post (Admin only)
+ * @access  Private (Admin)
+ */
+router.patch("/:id/pin", authenticate, communityController.togglePin);
+
+/**
+ * @route   PATCH /api/v1/posts/:id/status
+ * @desc    Update post status (Admin only)
+ * @access  Private (Admin)
+ */
+router.patch("/:id/status", authenticate, communityController.updateStatus);
+
 export default router;

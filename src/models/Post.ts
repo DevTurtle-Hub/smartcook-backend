@@ -28,6 +28,8 @@ export interface IPost extends Document {
   totalReactions: number;
   commentsCount: number;
   sharesCount: number;
+  isPinned?: boolean;
+  status?: "published" | "hidden" | "flagged";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,6 +116,17 @@ const PostSchema = new Schema<IPost>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["published", "hidden", "flagged"],
+      default: "published",
+      index: true,
     },
   },
   {
