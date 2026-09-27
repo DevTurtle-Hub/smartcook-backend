@@ -78,6 +78,38 @@ export class StoreController {
       );
     }
   );
+
+  /**
+   * PUT /api/v1/stores/:id (Admin)
+   */
+  updateStore = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const id = req.params.id as string;
+      const updated = await storeService.updateStore(id, req.body);
+      ApiResponse.success(
+        res,
+        updated,
+        "Cập nhật thông tin siêu thị thành công",
+        200
+      );
+    }
+  );
+
+  /**
+   * DELETE /api/v1/stores/:id (Admin)
+   */
+  deleteStore = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const id = req.params.id as string;
+      await storeService.deleteStore(id);
+      ApiResponse.success(
+        res,
+        null,
+        "Xóa siêu thị thành công",
+        200
+      );
+    }
+  );
 }
 
 export const storeController = new StoreController();

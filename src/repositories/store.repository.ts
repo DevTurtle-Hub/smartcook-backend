@@ -115,6 +115,21 @@ export class StoreRepository {
   async create(data: Partial<IStore>): Promise<IStore> {
     return Store.create(data);
   }
+
+  /**
+   * Update existing store
+   */
+  async update(id: string, data: Partial<IStore>): Promise<IStore | null> {
+    return Store.findByIdAndUpdate(id, data, { new: true });
+  }
+
+  /**
+   * Delete store by ID
+   */
+  async delete(id: string): Promise<boolean> {
+    const res = await Store.findByIdAndDelete(id);
+    return !!res;
+  }
 }
 
 export const storeRepository = new StoreRepository();

@@ -142,6 +142,37 @@ export class StoreService {
     });
     return this.getStoreById(newStore._id.toString());
   }
+
+  /**
+   * Update store (Admin)
+   */
+  async updateStore(id: string, data: any): Promise<any> {
+    const updateData: any = { ...data };
+    if (data.latitude !== undefined && data.longitude !== undefined) {
+      updateData.location = {
+        type: "Point",
+        coordinates: [data.longitude, data.latitude],
+      };
+      delete updateData.latitude;
+      delete updateData.longitude;
+    }
+    const updated = await storeRepository.update(id, updateData);
+    if (!updated) {
+      throw new NotFoundError("Siêu thị không tồn tại để cập nhật");
+    }
+    return this.getStoreById(id);
+  }
+
+  /**
+   * Delete store (Admin)
+   */
+  async deleteStore(id: string): Promise<boolean> {
+    const deleted = await storeRepository.delete(id);
+    if (!deleted) {
+      throw new NotFoundError("Siêu thị không tồn tại để xóa");
+    }
+    return true;
+  }
 }
 
 export const storeService = new StoreService();
