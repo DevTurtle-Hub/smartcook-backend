@@ -230,6 +230,38 @@ export class CommunityService {
 
     return await communityRepository.deletePost(postId);
   }
+
+  /**
+   * Toggle pin post (Admin only)
+   */
+  async togglePin(postId: string, userRole: string) {
+    if (userRole !== "admin") {
+      throw new ForbiddenError("Chỉ quản trị viên mới có quyền ghim bài viết");
+    }
+    const post = await communityRepository.findById(postId);
+    if (!post) {
+      throw new NotFoundError("Bài viết không tồn tại");
+    }
+    post.isPinned = !post.isPinned;
+    await post.save();
+    return this.enrichPostDTO(post);
+  }
+
+  /**
+   * Update post status (Admin only: published | hidden | flagged)
+   */
+  async updateStatus(postId: string, status: "published" | "hidden" | "flagged", userRole: string) {
+    if (userRole !== "admin") {
+      throw new ForbiddenError("Chỉ quản trị viên mới có quyền thay đổi trạng thái bài viết");
+    }
+    const post = await communityRepository.findById(postId);
+    if (!post) {
+      throw new NotFoundError("Bài viết không tồn tại");
+    }
+    post.status = status;
+    await post.save();
+    return this.enrichPostDTO(post);
+  }
 }
 
 export const communityService = new CommunityService();
