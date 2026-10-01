@@ -1,6 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { chatService } from "../services/chat.service";
+import { chatRepository } from "../repositories/chat.repository";
 import { AuthenticatedSocket, socketAuthMiddleware } from "./socketAuth";
 
 let io: SocketIOServer | null = null;
@@ -80,6 +81,20 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
           const roomKey = `conv_${data.conversationId}`;
           // Broadcast to everyone in room including sender (or sender can receive ack)
           io?.to(roomKey).emit("new_message", message);
+
+          // Also broadcast to each participant's user room to update conversation list/unread count
+          try {
+            const conversation = await chatRepository.findById(data.conversationId);
+            if (conversation && conversation.participants) {
+              for (const p of conversation.participants) {
+                const pId = (p._id || p).toString();
+                // Avoid redundant emit to sender if they are already in conv room
+                io?.to(`user_${pId}`).emit("new_message", message);
+              }
+            }
+          } catch (e) {
+            // Ignore participant lookup error
+          }
 
           if (callback) {
             callback({ success: true, data: message });
