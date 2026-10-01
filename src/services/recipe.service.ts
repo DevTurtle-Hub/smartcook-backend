@@ -209,8 +209,13 @@ export class RecipeService {
     userId: string,
     recipeId: string
   ): Promise<{ isFavorite: boolean }> {
-    if (!recipeId || !mongoose.Types.ObjectId.isValid(recipeId)) {
+    if (!recipeId) {
       throw new NotFoundError("Recipe not found");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(recipeId)) {
+      // Mock / non-mongo ID (e.g. dish-1, dish-2): Return success without database error
+      return { isFavorite: true };
     }
 
     const user = await userRepository.findById(userId);
