@@ -24,17 +24,21 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
 
   io.on("connection", (rawSocket) => {
     const socket = rawSocket as AuthenticatedSocket;
-    const userId = socket.data.userId;
+    const userId = socket.data?.userId;
 
-    // Register online user
-    if (!onlineUsers.has(userId)) {
-      onlineUsers.set(userId, new Set());
+    if (userId) {
+      // Register online user
+      if (!onlineUsers.has(userId)) {
+        onlineUsers.set(userId, new Set());
+      }
+      onlineUsers.get(userId)!.add(socket.id);
+
+      // Join personal user room for direct notifications
+      socket.join(`user_${userId}`);
+      console.log(`🔌 [Socket.io] User connected: ${userId} (Socket: ${socket.id})`);
+    } else {
+      console.log(`🌐 [Socket.io] Guest connected: (Socket: ${socket.id})`);
     }
-    onlineUsers.get(userId)!.add(socket.id);
-
-    // Join personal user room for direct notifications
-    socket.join(`user_${userId}`);
-    console.log(`🔌 [Socket.io] User connected: ${userId} (Socket: ${socket.id})`);
 
     /**
      * Join conversation room (1-1 direct chat or public community room)
@@ -66,6 +70,11 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
         callback?: (res: any) => void
       ) => {
         try {
+          if (!userId) {
+            if (callback) callback({ success: false, error: "Unauthorized" });
+            return;
+          }
+
           if (!data?.conversationId || (!data.text && !data.imageUri)) {
             if (callback) callback({ success: false, error: "Invalid message payload" });
             return;
@@ -133,14 +142,18 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
      * Disconnect
      */
     socket.on("disconnect", () => {
-      const userSockets = onlineUsers.get(userId);
-      if (userSockets) {
-        userSockets.delete(socket.id);
-        if (userSockets.size === 0) {
-          onlineUsers.delete(userId);
+      if (userId) {
+        const userSockets = onlineUsers.get(userId);
+        if (userSockets) {
+          userSockets.delete(socket.id);
+          if (userSockets.size === 0) {
+            onlineUsers.delete(userId);
+          }
         }
+        console.log(`❌ [Socket.io] User disconnected: ${userId} (Socket: ${socket.id})`);
+      } else {
+        console.log(`🌐 [Socket.io] Guest disconnected: (Socket: ${socket.id})`);
       }
-      console.log(`❌ [Socket.io] User disconnected: ${userId} (Socket: ${socket.id})`);
     });
   });
 
