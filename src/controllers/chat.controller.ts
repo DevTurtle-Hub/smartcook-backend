@@ -60,6 +60,27 @@ export class ChatController {
     const { text, imageUri } = req.body;
 
     const message = await chatService.sendMessage(id, userId, text, imageUri);
+
+    // Broadcast realtime event to Socket.io clients
+    try {
+      const { getIO } = await import("../socket/chat.gateway");
+      const { chatRepository } = await import("../repositories/chat.repository");
+      const io = getIO();
+      if (io) {
+        let broadcaster = io.to(`conv_${id}`);
+        const conversation = await chatRepository.findById(id);
+        if (conversation && conversation.participants) {
+          for (const p of conversation.participants) {
+            const pId = (p._id || p).toString();
+            broadcaster = broadcaster.to(`user_${pId}`);
+          }
+        }
+        broadcaster.emit("new_message", message);
+      }
+    } catch (e) {
+      // Ignore socket broadcasting failure if socket not initialized
+    }
+
     ApiResponse.created(res, message, "Gửi tin nhắn thành công");
   });
 }

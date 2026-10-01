@@ -79,8 +79,7 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
           );
 
           const roomKey = `conv_${data.conversationId}`;
-          // Broadcast to everyone in room including sender (or sender can receive ack)
-          io?.to(roomKey).emit("new_message", message);
+          let broadcaster = io?.to(roomKey);
 
           // Also broadcast to each participant's user room to update conversation list/unread count
           try {
@@ -88,13 +87,15 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
             if (conversation && conversation.participants) {
               for (const p of conversation.participants) {
                 const pId = (p._id || p).toString();
-                // Avoid redundant emit to sender if they are already in conv room
-                io?.to(`user_${pId}`).emit("new_message", message);
+                broadcaster = broadcaster?.to(`user_${pId}`);
               }
             }
           } catch (e) {
             // Ignore participant lookup error
           }
+
+          // Single merged broadcast (Socket.io automatically deduplicates sockets present in multiple rooms)
+          broadcaster?.emit("new_message", message);
 
           if (callback) {
             callback({ success: true, data: message });
