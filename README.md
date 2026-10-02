@@ -66,6 +66,12 @@ npm start
 
 ---
 
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page or submit a Pull Request.
+
+---
+
 ## 👥 Contributors
 
 - **DinhLoii** ([@DinhLoii](https://github.com/DinhLoii)) - Lead Developer
