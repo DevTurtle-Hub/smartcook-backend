@@ -12,6 +12,8 @@ import communityRoutes from "./community.route";
 import chatRoutes from "./chat.route";
 import plannerRoutes from "./planner.route";
 import storeRoutes from "./store.route";
+import notificationRoutes from "./notification.route";
+import rewardRoutes from "./reward.route";
 
 const router = Router();
 
@@ -36,5 +38,9 @@ router.use("/chat", chatRoutes);
 // Phase 7: Meal Planner, Smart Shopping List & Stores
 router.use("/planner", plannerRoutes);
 router.use("/stores", storeRoutes);
+
+// Phase 8: Notifications & Daily Rewards
+router.use("/notifications", notificationRoutes);
+router.use("/rewards", rewardRoutes);
 
 export default router;
