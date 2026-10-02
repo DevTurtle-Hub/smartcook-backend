@@ -7,6 +7,7 @@ import { communityRepository, PostFilter } from "../repositories/community.repos
 import { userRepository } from "../repositories/user.repository";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/errors";
 import { calculateChefLevel } from "./cookingHistory.service";
+import { notificationService } from "./notification.service";
 
 export interface CreatePostInput {
   dishName?: string;
@@ -85,8 +86,12 @@ export class CommunityService {
     input: CreatePostInput,
     files?: Express.Multer.File[]
   ) {
-    const captionText = input.caption || input.content;
-    if (!captionText || !captionText.trim()) {
+    const captionText =
+      input.caption?.trim() ||
+      input.content?.trim() ||
+      input.dishName?.trim() ||
+      "Món ngon tự nấu chia sẻ cùng cả nhà! 🍲";
+    if (!captionText) {
       throw new BadRequestError("Nội dung bài viết (caption/content) không được để trống");
     }
 
@@ -112,8 +117,11 @@ export class CommunityService {
       for (const img of input.images) {
         if (typeof img === "string" && img.trim()) {
           uploadedImages.push({ url: img.trim() });
-        } else if (typeof img === "object" && img?.url) {
-          uploadedImages.push({ url: img.url, publicId: img.publicId });
+        } else if (typeof img === "object") {
+          const directUrl = (img as any).url || (img as any).uri;
+          if (directUrl && typeof directUrl === "string" && directUrl.trim()) {
+            uploadedImages.push({ url: directUrl.trim(), publicId: (img as any).publicId });
+          }
         }
       }
     }
@@ -162,9 +170,21 @@ export class CommunityService {
    */
   async reactPost(postId: string, userId: string, type: ReactionType = "like") {
     const post = await communityRepository.toggleReaction(postId, userId, type);
-    if (!post) {
-      throw new NotFoundError("Bài viết không tồn tại");
+    if (post && post.author && post.author.toString() !== userId) {
+      const hasReaction =
+        post.reactions instanceof Map
+          ? post.reactions.has(userId)
+          : Boolean((post.reactions as any)?.[userId]);
+      if (hasReaction) {
+        void notificationService.pushNotification(post.author.toString(), {
+          title: "❤️ Có người thích bài viết của bạn!",
+          body: `Bài viết "${post.dishName || "Món ngon"}" vừa nhận được một lượt yêu thích mới.`,
+          type: "community",
+          data: { postId: post._id.toString() },
+        });
+      }
     }
+
     return this.enrichPostDTO(post, userId);
   }
 
@@ -197,6 +217,16 @@ export class CommunityService {
     await User.findByIdAndUpdate(userId, {
       $inc: { chefExp: 5 },
     }).exec();
+
+    // Trigger realtime notification to post author
+    if (post.author && post.author.toString() !== userId) {
+      void notificationService.pushNotification(post.author.toString(), {
+        title: "💬 Bình luận mới trên bài viết của bạn",
+        body: `Có người vừa bình luận: "${content.trim().slice(0, 50)}"`,
+        type: "community",
+        data: { postId: post._id.toString() },
+      });
+    }
 
     return comment;
   }
