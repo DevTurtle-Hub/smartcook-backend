@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { chatRepository } from "../repositories/chat.repository";
 import { userRepository } from "../repositories/user.repository";
+import { notificationService } from "./notification.service";
 import { BadRequestError, NotFoundError } from "../utils/errors";
 
 export class ChatService {
@@ -159,6 +160,36 @@ export class ChatService {
       imageUri,
       readBy: [new Types.ObjectId(senderId) as any],
     });
+
+    // Push realtime notification to other participants in direct conversations
+    try {
+      if (conversation.participants && Array.isArray(conversation.participants)) {
+        const senderUser = await userRepository.findById(senderId);
+        const senderName = senderUser?.fullName || "Đầu Bếp";
+        const snippet = text?.trim()
+          ? (text.trim().length > 60 ? text.trim().slice(0, 57) + "..." : text.trim())
+          : "Đã gửi một hình ảnh 📷";
+
+        for (const p of conversation.participants) {
+          const pId = (p as any)?._id ? (p as any)._id.toString() : p.toString();
+          if (pId !== senderId.toString()) {
+            await notificationService.pushNotification(pId, {
+              title: `Tin nhắn mới từ ${senderName}`,
+              body: snippet,
+              type: "community",
+              data: {
+                type: "chat_message",
+                conversationId,
+                senderId,
+                senderName,
+              },
+            });
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.warn("⚠️ [ChatService] Không thể đẩy thông báo tin nhắn mới:", notifErr);
+    }
 
     return {
       id: message._id.toString(),
