@@ -18,6 +18,23 @@ export interface IUserPreferences {
   updatedAt: Date;
 }
 
+export interface IUserClaimedReward {
+  id: string;
+  title: string;
+  description: string;
+  code: string;
+  discountValue: string;
+  type: "voucher" | "recipe_vip" | "badge";
+  claimedAt: Date;
+  expiresAt: Date;
+  isUsed: boolean;
+}
+
+export interface IUserCheckIn {
+  lastCheckInDate?: Date;
+  streakDays: number;
+}
+
 export interface IUser extends Document {
   firstName: string;
   lastName: string;
@@ -32,6 +49,8 @@ export interface IUser extends Document {
   level: string;
   preferences: IUserPreferences;
   favoriteRecipeIds: mongoose.Types.ObjectId[];
+  claimedRewards?: IUserClaimedReward[];
+  checkIn?: IUserCheckIn;
   refreshToken?: string;
   isActive: boolean;
   createdAt: Date;
@@ -149,6 +168,27 @@ const UserSchema = new Schema<IUser>(
         ref: "Recipe",
       },
     ],
+    claimedRewards: [
+      {
+        id: { type: String, required: true },
+        title: { type: String, required: true },
+        description: { type: String, default: "" },
+        code: { type: String, required: true },
+        discountValue: { type: String, default: "" },
+        type: {
+          type: String,
+          enum: ["voucher", "recipe_vip", "badge"],
+          default: "voucher",
+        },
+        claimedAt: { type: Date, default: Date.now },
+        expiresAt: { type: Date },
+        isUsed: { type: Boolean, default: false },
+      },
+    ],
+    checkIn: {
+      lastCheckInDate: { type: Date },
+      streakDays: { type: Number, default: 0 },
+    },
     refreshToken: {
       type: String,
       select: false,
