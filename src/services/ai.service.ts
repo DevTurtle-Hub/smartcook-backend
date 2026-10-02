@@ -1,4 +1,4 @@
-import { geminiClient, GEMINI_MODEL } from "../config/gemini";
+import { geminiClient, GEMINI_MODEL, GEMINI_CANDIDATE_MODELS } from "../config/gemini";
 import Recipe, { IRecipe } from "../models/Recipe";
 import { IScanHistory, IScanDetectedIngredient, IScanPin, IScanSuggestedRecipe } from "../models/ScanHistory";
 import { fridgeRepository } from "../repositories/fridge.repository";
@@ -109,30 +109,53 @@ Lưu ý:
 - pins: chứa từ 2 đến 4 ghim toạ độ phần trăm trên ảnh (top/bottom, left/right từ 15 đến 85) để hiển thị nhãn đè lên ảnh.
 - suggestedRecipe phải thật thiết thực, dễ nấu.`;
 
-      const response = await geminiClient.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                inlineData: {
-                  mimeType: mimeType || "image/jpeg",
-                  data: base64Data,
-                },
-              },
-              { text: prompt },
-            ],
-          },
-        ],
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.3,
-        },
-      });
+      let responseText = "{}";
+      let lastScanErr: any = null;
 
-      const responseText = response.text || "{}";
-      const parsed = JSON.parse(responseText);
+      for (const candidateModel of GEMINI_CANDIDATE_MODELS) {
+        try {
+          const response = await geminiClient.models.generateContent({
+            model: candidateModel,
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: mimeType || "image/jpeg",
+                      data: base64Data,
+                    },
+                  },
+                  { text: prompt },
+                ],
+              },
+            ],
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.3,
+            },
+          });
+          if (response.text) {
+            responseText = response.text;
+            break;
+          }
+        } catch (err: any) {
+          lastScanErr = err;
+          console.warn(`⚠️ [AIService] Scan with ${candidateModel} failed, trying next candidate...`);
+        }
+      }
+
+      if (responseText === "{}" && lastScanErr) {
+        throw lastScanErr;
+      }
+
+      let cleaned = responseText.trim();
+      if (cleaned.startsWith("```json")) {
+        cleaned = cleaned.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+      } else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+      const parsed = JSON.parse(cleaned);
 
       // Match suggested recipe with database if any exists
       let matchedRecipeId: string | undefined;
@@ -339,17 +362,40 @@ YÊU CẦU:
         },
       ];
 
-      const response = await geminiClient.models.generateContent({
-        model: GEMINI_MODEL,
-        contents,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.6,
-        },
-      });
+      let responseText = "{}";
+      let lastChatErr: any = null;
 
-      const responseText = response.text || "{}";
-      const parsed = JSON.parse(responseText);
+      for (const candidateModel of GEMINI_CANDIDATE_MODELS) {
+        try {
+          const response = await geminiClient.models.generateContent({
+            model: candidateModel,
+            contents,
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.6,
+            },
+          });
+          if (response.text) {
+            responseText = response.text;
+            break;
+          }
+        } catch (err: any) {
+          lastChatErr = err;
+          console.warn(`⚠️ [AIService] AssistantChat with ${candidateModel} failed, trying next candidate...`);
+        }
+      }
+
+      if (responseText === "{}" && lastChatErr) {
+        throw lastChatErr;
+      }
+
+      let cleaned = responseText.trim();
+      if (cleaned.startsWith("```json")) {
+        cleaned = cleaned.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+      } else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+      const parsed = JSON.parse(cleaned);
 
       return {
         replyText:
@@ -371,47 +417,110 @@ YÊU CẦU:
    */
   private createChatFallback(query: string): AssistantChatResponse {
     const lower = query.toLowerCase();
+    const normalized = normalizeVietnamese(query);
 
-    if (lower.includes("ức gà") || lower.includes("thịt gà") || lower.includes("ga")) {
+    // Gà / Cơm gà / Teriyaki
+    if (
+      lower.includes("teriyaki") ||
+      normalized.includes("com ga") ||
+      normalized.includes("thit ga") ||
+      normalized.includes("uc ga") ||
+      lower.includes("gà")
+    ) {
       return {
         replyText:
-          "Với thịt gà, bạn có thể làm **Cơm Gà Teriyaki áp chảo sốt mè** giòn ngon hoặc **Salad Gà áp chảo Eat Clean** thanh đạm. Bạn có muốn xem công thức chi tiết không?",
-        suggestedDishes: ["Cơm gà sốt Teriyaki", "Gà chiên giòn mật ong"],
-        quickPrompts: ["Cách làm nước sốt gà", "Mẹo ức gà không bị khô"],
+          `Chào bạn! Dưới đây là công thức chi tiết và các bước nấu món **Cơm Gà Teriyaki Áp Chảo** thơm lừng, da giòn vàng óng chuẩn vị Nhật:\n\n` +
+          `🥣 **Nguyên liệu chuẩn bị (2 người ăn):**\n` +
+          `- 2 miếng đùi gà rút xương hoặc ức gà phi lê (khoảng 350-400g)\n` +
+          `- 2 chén cơm trắng dẻo nóng hổi\n` +
+          `- **Nước sốt Teriyaki:** 3 thìa canh nước tương (xì dầu), 2 thìa canh mật ong (hoặc đường nâu), 2 thìa canh rượu nấu ăn (hoặc mirin), 1 thìa cà phê dầu mè, 1 nhánh gừng nhỏ băm nhuyễn, 2 tép tỏi băm.\n` +
+          `- Mè trắng rang vàng, hành lá thái nhỏ, rau xà lách hoặc dưa leo ăn kèm.\n\n` +
+          `👩‍🍳 **Các bước thực hiện:**\n` +
+          `1. **Sơ chế thịt gà:** Gà rửa sạch với nước muối loãng, dùng khăn giấy thấm thật khô. Khứa nhẹ vài đường chéo bên trong thớ thịt để gà nhanh chín và ngấm gia vị sâu hơn.\n` +
+          `2. **Pha sốt Teriyaki:** Khuấy đều nước tương, mật ong, rượu, dầu mè, tỏi và gừng băm trong bát nhỏ cho tan hết.\n` +
+          `3. **Áp chảo da gà giòn rụm:** Đặt chảo lên bếp với 1 thìa cà phê dầu ăn ở lửa vừa. Đặt mặt da gà xuống trước, áp chảo khoảng 5-6 phút cho lớp mỡ dưới da tiết ra vàng ruộm và giòn rụm. Sau đó lật mặt thịt áp chảo thêm 3-4 phút nữa.\n` +
+          `4. **Rim sốt đậm đà:** Rót toàn bộ hỗn hợp sốt Teriyaki vào chảo. Hạ lửa nhỏ liu riu, liên tục dùng thìa múc nước sốt rưới lên miếng gà cho đến khi sốt sánh lại, phủ đều lớp áo nâu bóng bẩy quanh miếng gà thì tắt bếp.\n` +
+          `5. **Trình bày & Thưởng thức:** Thái gà thành từng lát vừa ăn. Xới cơm nóng ra bát hoặc đĩa sâu lòng, xếp thịt gà lên trên, rưới phần sốt sánh đậm đà trong chảo lên cơm, rắc thêm chút mè rang và hành lá xanh mát.\n\n` +
+          `💡 *Bí quyết đầu bếp:* Thấm khô da gà trước khi áp chảo và không đậy nắp chảo sẽ giúp da gà đạt độ giòn chuẩn nhất mà không bị dai ướt!`,
+        suggestedDishes: ["Cơm Gà Teriyaki Áp Chảo", "Salad Ức Gà Bơ Sốt Chanh Leo", "Canh Rong Biển Thịt Bò"],
+        quickPrompts: ["Mẹo áp chảo da gà giòn", "Lượng calo trong 1 đĩa cơm gà", "Cách làm sốt Teriyaki bảo quản lâu"],
       };
     }
 
-    if (lower.includes("eat clean") || lower.includes("thanh đạm") || lower.includes("ít dầu")) {
+    // Bò / Bít tết / Bò sốt tiêu
+    if (
+      lower.includes("bò") ||
+      normalized.includes("thit bo") ||
+      normalized.includes("bit tet") ||
+      normalized.includes("bo sot")
+    ) {
       return {
         replyText:
-          "Thực đơn Eat Clean lý tưởng hôm nay: **Salad Cá Hồi Áp Chảo sốt chanh leo** và **Bò áp chảo măng tây**. Giàu đạm, ít carb và không ngấy mỡ!",
-        suggestedDishes: ["Salad Cá Hồi Bơ Sáp", "Bò áp chảo măng tây"],
-        quickPrompts: ["Calo trong 1 đĩa salad", "Cách làm sốt chanh leo"],
+          `Bếp gửi bạn công thức **Bò Bít Tết Sốt Tiêu Đen & Măng Tây** mềm mọng chuẩn nhà hàng:\n\n` +
+          `🥩 **Nguyên liệu (2 phần):** 400g thăn bò (tenderloin hoặc ribeye), 150g măng tây non, 2 thìa bơ lạt, 2 tép tỏi đập dập, 1 nhánh hương thảo (rosemary), hạt tiêu đen đập dập, muối biển, dầu ô liu.\n\n` +
+          `👩‍🍳 **Các bước chế biến:**\n` +
+          `1. **Chuẩn bị thịt:** Để thịt bò về nhiệt độ phòng 20 phút trước khi nấu. Thấm khô, rắc muối biển và tiêu đen đều hai mặt.\n` +
+          `2. **Làm nóng chảo:** Đun chảo gang thật nóng với 1 thìa dầu ô liu đến khi bốc khói nhẹ.\n` +
+          `3. **Áp chảo:** Cho thịt vào áp chảo mỗi mặt 2-2.5 phút (độ chín Medium-Rare). Phút cuối cùng cho bơ lạt, tỏi và hương thảo vào, múc bơ nóng liên tục rưới lên mặt thịt.\n` +
+          `4. **Nghỉ thịt (Bắt buộc):** Gắp thịt ra đĩa để nghỉ 5 phút cho nước ngọt trong thịt phân bổ đều, không bị chảy mất nước.\n` +
+          `5. **Xào măng tây & làm sốt tiêu:** Dùng chảo vừa áp chảo, xào măng tây vừa chín tới giòn ngọt, nêm thêm chút tiêu đen xay và bơ làm sốt rưới lên thịt bò.\n\n` +
+          `💡 *Bí quyết:* Tuyệt đối không cắt thịt ngay sau khi nhấc khỏi chảo để thịt luôn giữ trọn vị ngọt mọng mọng nước!`,
+        suggestedDishes: ["Bò Bít Tết Sốt Tiêu Măng Tây", "Bò Lúc Lắc Khoai Tây", "Salad Bò Áp Chảo"],
+        quickPrompts: ["Cách chọn phần thịt bò mềm", "Thời gian áp chảo theo độ chín", "Sốt tiêu đen ăn kèm"],
       };
     }
 
-    if (lower.includes("hôm nay ăn gì") || lower.includes("gợi ý") || lower.includes("bữa tối")) {
+    // Eat clean / Thanh đạm / Giảm cân
+    if (
+      lower.includes("eat clean") ||
+      lower.includes("thanh đạm") ||
+      lower.includes("ít dầu") ||
+      lower.includes("giảm cân") ||
+      lower.includes("healthy")
+    ) {
       return {
         replyText:
-          "Hôm nay thời tiết rất thích hợp cho một bữa tối ấm cúng! SmartCook gợi ý bạn món **Mì Ý Sốt Bò Bằm Bolognese** thơm ngậy hoặc **Canh Rong Biển Thịt Bò** thanh mát!",
-        suggestedDishes: ["Mì Ý Sốt Bò Bằm", "Canh Rong Biển Thịt Bò"],
-        quickPrompts: ["Món dưới 20 phút", "Món cho 2 người"],
+          `Gợi ý thực đơn **Eat Clean - Giàu Đạm Ít Calo** chuẩn khoa học hôm nay:\n\n` +
+          `🥗 **Món chính: Salad Cá Hồi Bơ Sáp Sốt Chanh Leo (~380 kcal)**\n` +
+          `- Phi lê cá hồi áp chảo dầu ô liu giòn da, bên trong mềm ẩm béo ngậy.\n` +
+          `- Trộn cùng bơ sáp cắt hạt lựu, cà chua bi, xà lách rocket và sốt chanh leo chua thanh kích thích vị giác.\n\n` +
+          `🍲 **Món canh: Canh Nấm Đậu Phụ Thanh Nhiệt (~120 kcal)**\n` +
+          `- Nấm kim châm, nấm hương tươi nấu cùng đậu hũ non mềm mượt, điểm thêm vài nhánh hẹ thanh mát.\n\n` +
+          `💡 *Lợi ích:* Bữa ăn cung cấp hơn 35g Protein, giàu Omega-3 tốt cho tim mạch và làn da, hoàn toàn không gây đầy bụng!`,
+        suggestedDishes: ["Salad Cá Hồi Bơ Sáp", "Canh Nấm Đậu Hũ Non", "Ức Gà Hấp Lá Chanh"],
+        quickPrompts: ["Món dưới 400 kcal", "Gợi ý bữa trưa Eat Clean", "Cách làm sốt salad healthy"],
       };
     }
 
-    if (lower.includes("bò") || lower.includes("thịt bò")) {
+    // Hôm nay ăn gì / Gợi ý bữa tối
+    if (
+      lower.includes("hôm nay ăn gì") ||
+      lower.includes("gợi ý") ||
+      lower.includes("bữa tối") ||
+      lower.includes("bữa trưa")
+    ) {
       return {
         replyText:
-          "Bí quyết ướp thịt bò mềm mọng: Ướp cùng 1 thìa dầu olive + tỏi băm + chút nước tương và xíu bột bắp trong 15 phút. Xào lửa lớn đảo nhanh tay là thịt ngọt lịm không dai nhé!",
-        suggestedDishes: ["Bò Bít Tết Sốt Tiêu", "Bò lúc lắc khoai tây"],
-        quickPrompts: ["Nhiệt độ áp chảo bò", "Rau ăn kèm thịt bò"],
+          `Bếp trưởng gợi ý cho bạn mâm cơm gia đình 3 món hài hòa dinh dưỡng, chuẩn bị chỉ trong 25 phút:\n\n` +
+          `1. 🍲 **Canh Chua Cá Hồi:** Vị chua thanh của thơm (dứa) và cà chua quyện cùng vị ngọt béo của cá hồi tươi, rắc ngò gai rau ngổ thơm phức.\n` +
+          `2. 🍳 **Thịt Ba Chỉ Kho Trứng Cút:** Thịt mềm rục, màu cánh gián bắt mắt, nước kho sánh đậm đà rất đưa cơm.\n` +
+          `3. 🥗 **Rau Củ Luộc Chấm Kho Quẹt:** Bông cải xanh, cà rốt, đậu bắp giòn ngọt cân bằng lại vị đậm của món kho.\n\n` +
+          `Bạn có muốn xem công thức chi tiết của món nào trong thực đơn này không?`,
+        suggestedDishes: ["Canh Chua Cá Hồi", "Thịt Kho Tàu", "Rau Củ Luộc"],
+        quickPrompts: ["Món ngon nấu dưới 20 phút", "Thực đơn cho 4 người", "Món xào thanh đạm"],
       };
     }
 
     return {
-      replyText: `SmartCook đã ghi nhận câu hỏi của bạn: "${query}". Bạn có thể tận dụng các nguyên liệu sẵn có trong tủ lạnh hoặc dùng tính năng Scan AI để mình gợi ý công thức chuẩn xác nhất nhé!`,
-      suggestedDishes: ["Xem công thức hot tuần này", "Món dưới 500 kcal"],
-      quickPrompts: ["Hôm nay ăn gì?", "Món thanh đạm ít dầu"],
+      replyText:
+        `Chào bạn! SmartCook rất vui được đồng hành cùng bạn vào bếp 👩‍🍳.\n\n` +
+        `Để hướng dẫn chuẩn xác nhất, bạn có thể nói cho mình biết:\n` +
+        `- 🥘 **Tên món ăn** bạn muốn nấu (ví dụ: *Cơm Gà Teriyaki, Bò Bít Tết, Canh Chua...*)\n` +
+        `- 🥬 **Nguyên liệu** bạn đang có sẵn trong tủ lạnh\n` +
+        `- ⚖️ **Mục tiêu khẩu phần hay chế độ ăn** (Eat Clean, ít dầu, giàu đạm...)\n\n` +
+        `Bếp sẽ phân tích và lên ngay công thức chi tiết từng bước cho bạn nhé!`,
+      suggestedDishes: ["Cơm Gà Teriyaki Áp Chảo", "Bò Bít Tết Sốt Tiêu", "Salad Cá Hồi Bơ Sáp"],
+      quickPrompts: ["Hôm nay ăn gì nhanh gọn?", "Món thanh đạm ít dầu", "Cách ướp thịt bò mềm"],
     };
   }
 }

@@ -11,4 +11,12 @@ if (!apiKey) {
 
 export const geminiClient = new GoogleGenAI({ apiKey });
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+
+// Danh sách các model theo thứ tự ưu tiên (Tự động chuyển model nếu quá tải hoặc bảo trì)
+export const GEMINI_CANDIDATE_MODELS = [
+  process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+];

@@ -15,12 +15,18 @@ export class StoreRepository {
   }
 
   /**
-   * Seed stores from SEED_STORES if collection is empty
+   * Seed stores from SEED_STORES if collection is empty or missing newly added stores
    */
   async seedStores(): Promise<void> {
     const count = await this.count();
-    if (count === 0) {
-      await Store.insertMany(SEED_STORES);
+    if (count < SEED_STORES.length) {
+      for (const storeData of SEED_STORES) {
+        await Store.updateOne(
+          { name: storeData.name },
+          { $set: storeData },
+          { upsert: true }
+        );
+      }
     }
   }
 

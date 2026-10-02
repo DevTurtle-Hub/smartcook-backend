@@ -1,6 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { chatService } from "../services/chat.service";
+import { chatRepository } from "../repositories/chat.repository";
 import { AuthenticatedSocket, socketAuthMiddleware } from "./socketAuth";
 
 let io: SocketIOServer | null = null;
@@ -23,17 +24,21 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
 
   io.on("connection", (rawSocket) => {
     const socket = rawSocket as AuthenticatedSocket;
-    const userId = socket.data.userId;
+    const userId = socket.data?.userId;
 
-    // Register online user
-    if (!onlineUsers.has(userId)) {
-      onlineUsers.set(userId, new Set());
+    if (userId) {
+      // Register online user
+      if (!onlineUsers.has(userId)) {
+        onlineUsers.set(userId, new Set());
+      }
+      onlineUsers.get(userId)!.add(socket.id);
+
+      // Join personal user room for direct notifications
+      socket.join(`user_${userId}`);
+      console.log(`🔌 [Socket.io] User connected: ${userId} (Socket: ${socket.id})`);
+    } else {
+      console.log(`🌐 [Socket.io] Guest connected: (Socket: ${socket.id})`);
     }
-    onlineUsers.get(userId)!.add(socket.id);
-
-    // Join personal user room for direct notifications
-    socket.join(`user_${userId}`);
-    console.log(`🔌 [Socket.io] User connected: ${userId} (Socket: ${socket.id})`);
 
     /**
      * Join conversation room (1-1 direct chat or public community room)
@@ -65,6 +70,11 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
         callback?: (res: any) => void
       ) => {
         try {
+          if (!userId) {
+            if (callback) callback({ success: false, error: "Unauthorized" });
+            return;
+          }
+
           if (!data?.conversationId || (!data.text && !data.imageUri)) {
             if (callback) callback({ success: false, error: "Invalid message payload" });
             return;
@@ -78,8 +88,23 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
           );
 
           const roomKey = `conv_${data.conversationId}`;
-          // Broadcast to everyone in room including sender (or sender can receive ack)
-          io?.to(roomKey).emit("new_message", message);
+          // Broadcast to everyone in conversation and user rooms EXCEPT the sender socket
+          let broadcaster = socket.to(roomKey);
+
+          // Also broadcast to each participant's user room to update conversation list/unread count
+          try {
+            const conversation = await chatRepository.findById(data.conversationId);
+            if (conversation && conversation.participants) {
+              for (const p of conversation.participants) {
+                const pId = (p._id || p).toString();
+                broadcaster = broadcaster.to(`user_${pId}`);
+              }
+            }
+          } catch (e) {
+            // Ignore participant lookup error
+          }
+
+          broadcaster.emit("new_message", message);
 
           if (callback) {
             callback({ success: true, data: message });
@@ -117,14 +142,18 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
      * Disconnect
      */
     socket.on("disconnect", () => {
-      const userSockets = onlineUsers.get(userId);
-      if (userSockets) {
-        userSockets.delete(socket.id);
-        if (userSockets.size === 0) {
-          onlineUsers.delete(userId);
+      if (userId) {
+        const userSockets = onlineUsers.get(userId);
+        if (userSockets) {
+          userSockets.delete(socket.id);
+          if (userSockets.size === 0) {
+            onlineUsers.delete(userId);
+          }
         }
+        console.log(`❌ [Socket.io] User disconnected: ${userId} (Socket: ${socket.id})`);
+      } else {
+        console.log(`🌐 [Socket.io] Guest disconnected: (Socket: ${socket.id})`);
       }
-      console.log(`❌ [Socket.io] User disconnected: ${userId} (Socket: ${socket.id})`);
     });
   });
 

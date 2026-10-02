@@ -45,6 +45,16 @@ export class CommunityController {
     const files = req.files as Express.Multer.File[] | undefined;
 
     const post = await communityService.createPost(userId, req.body, files);
+
+    // Broadcast new post in realtime to all connected clients
+    try {
+      const { getIO } = await import("../socket/chat.gateway");
+      const io = getIO();
+      io?.emit("new_community_post", { post });
+    } catch (_e) {
+      // Ignore socket error if socket is not initialized
+    }
+
     ApiResponse.created(
       res,
       post,
@@ -61,6 +71,22 @@ export class CommunityController {
     const type = req.body.type || "like";
 
     const post = await communityService.reactPost(id, userId, type);
+
+    // Broadcast updated reactions in realtime to all connected clients
+    try {
+      const { getIO } = await import("../socket/chat.gateway");
+      const io = getIO();
+      io?.emit("post_reaction_updated", {
+        postId: id,
+        totalReactions: post.totalReactions,
+        reactionCounts: post.reactionCounts,
+        userId,
+        reactionType: post.myReaction,
+      });
+    } catch (_e) {
+      // Ignore socket error
+    }
+
     ApiResponse.success(res, post, "Cập nhật cảm xúc thành công");
   });
 
@@ -72,6 +98,22 @@ export class CommunityController {
     const userId = req.user!._id.toString();
 
     const post = await communityService.reactPost(id, userId, "like");
+
+    // Broadcast updated reactions in realtime to all connected clients
+    try {
+      const { getIO } = await import("../socket/chat.gateway");
+      const io = getIO();
+      io?.emit("post_reaction_updated", {
+        postId: id,
+        totalReactions: post.totalReactions,
+        reactionCounts: post.reactionCounts,
+        userId,
+        reactionType: post.myReaction,
+      });
+    } catch (_e) {
+      // Ignore socket error
+    }
+
     ApiResponse.success(res, post, "Thả tim bài viết thành công");
   });
 
@@ -89,6 +131,23 @@ export class CommunityController {
       content,
       parentComment || parentCommentId
     );
+
+    // Broadcast new comment in realtime to all connected clients
+    try {
+      const { Post } = await import("../models/Post");
+      const updatedPost = await Post.findById(id).select("commentsCount").lean();
+      const commentsCount = updatedPost?.commentsCount || 0;
+
+      const { getIO } = await import("../socket/chat.gateway");
+      const io = getIO();
+      io?.emit("new_post_comment", {
+        postId: id,
+        comment,
+        commentsCount,
+      });
+    } catch (_e) {
+      // Ignore socket error
+    }
 
     ApiResponse.created(
       res,
@@ -118,6 +177,16 @@ export class CommunityController {
     const userRole = (req.user as any)?.role || "user";
 
     await communityService.deletePost(id, userId, userRole);
+
+    // Broadcast deleted post to all connected clients
+    try {
+      const { getIO } = await import("../socket/chat.gateway");
+      const io = getIO();
+      io?.emit("post_deleted", { postId: id });
+    } catch (_e) {
+      // Ignore socket error
+    }
+
     ApiResponse.success(res, null, "Xoá bài viết thành công");
   });
 
