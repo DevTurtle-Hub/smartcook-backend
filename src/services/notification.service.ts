@@ -68,37 +68,51 @@ export class NotificationService {
   async pushNotification(
     userId: string,
     payload: PushNotificationPayload
-  ): Promise<INotification> {
-    const notification = await notificationRepository.create({
-      userId: new mongoose.Types.ObjectId(userId),
-      title: payload.title,
-      body: payload.body,
-      type: payload.type,
-      data: payload.data || {},
-      isRead: false,
-    });
-
-    // Phát sự kiện realtime qua Socket.io
+  ): Promise<INotification | null> {
     try {
-      const io = getIO();
-      if (io) {
-        io.to(`user_${userId}`).emit("new_notification", {
-          id: notification._id.toString(),
-          _id: notification._id.toString(),
-          title: notification.title,
-          body: notification.body,
-          type: notification.type,
-          data: notification.data,
-          isRead: false,
-          createdAt: notification.createdAt,
-        });
-        console.log(`🔔 [Socket.io] Realtime notification emitted to user_${userId}: "${notification.title}"`);
-      }
-    } catch (socketErr) {
-      // Socket.io có thể chưa khởi tạo trong môi trường test script, bỏ qua lỗi
-    }
+      const cleanUserId = typeof userId === 'object' && (userId as any)?._id 
+        ? (userId as any)._id.toString() 
+        : String(userId);
 
-    return notification;
+      if (!cleanUserId || !mongoose.Types.ObjectId.isValid(cleanUserId)) {
+        console.warn(`[Notification] Skipped pushNotification: Invalid userId "${userId}"`);
+        return null;
+      }
+
+      const notification = await notificationRepository.create({
+        userId: new mongoose.Types.ObjectId(cleanUserId),
+        title: payload.title,
+        body: payload.body,
+        type: payload.type,
+        data: payload.data || {},
+        isRead: false,
+      });
+
+      // Phát sự kiện realtime qua Socket.io
+      try {
+        const io = getIO();
+        if (io) {
+          io.to(`user_${cleanUserId}`).emit("new_notification", {
+            id: notification._id.toString(),
+            _id: notification._id.toString(),
+            title: notification.title,
+            body: notification.body,
+            type: notification.type,
+            data: notification.data,
+            isRead: false,
+            createdAt: notification.createdAt,
+          });
+          console.log(`🔔 [Socket.io] Realtime notification emitted to user_${cleanUserId}: "${notification.title}"`);
+        }
+      } catch (socketErr) {
+        // Socket.io có thể chưa khởi tạo trong môi trường test script, bỏ qua lỗi
+      }
+
+      return notification;
+    } catch (err) {
+      console.warn("[Notification] Failed to create or push notification:", err);
+      return null;
+    }
   }
 
   /**

@@ -170,13 +170,17 @@ export class CommunityService {
    */
   async reactPost(postId: string, userId: string, type: ReactionType = "like") {
     const post = await communityRepository.toggleReaction(postId, userId, type);
-    if (post && post.author && post.author.toString() !== userId) {
+    const authorId = (post?.author as any)?._id 
+      ? (post?.author as any)._id.toString() 
+      : post?.author?.toString();
+
+    if (post && authorId && authorId !== userId) {
       const hasReaction =
         post.reactions instanceof Map
           ? post.reactions.has(userId)
           : Boolean((post.reactions as any)?.[userId]);
       if (hasReaction) {
-        void notificationService.pushNotification(post.author.toString(), {
+        void notificationService.pushNotification(authorId, {
           title: "❤️ Có người thích bài viết của bạn!",
           body: `Bài viết "${post.dishName || "Món ngon"}" vừa nhận được một lượt yêu thích mới.`,
           type: "community",
@@ -219,8 +223,12 @@ export class CommunityService {
     }).exec();
 
     // Trigger realtime notification to post author
-    if (post.author && post.author.toString() !== userId) {
-      void notificationService.pushNotification(post.author.toString(), {
+    const authorId = (post.author as any)?._id 
+      ? (post.author as any)._id.toString() 
+      : post.author?.toString();
+
+    if (authorId && authorId !== userId) {
+      void notificationService.pushNotification(authorId, {
         title: "💬 Bình luận mới trên bài viết của bạn",
         body: `Có người vừa bình luận: "${content.trim().slice(0, 50)}"`,
         type: "community",
