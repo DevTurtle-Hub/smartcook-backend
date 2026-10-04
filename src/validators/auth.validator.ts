@@ -62,3 +62,38 @@ export const updateProfileSchema = Joi.object({
   lastName: Joi.string().trim().min(1).max(50).optional(),
   avatar: Joi.string().uri().allow("").optional(),
 });
+
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    "string.email": "Vui lòng nhập địa chỉ email hợp lệ",
+    "any.required": "Email là bắt buộc",
+  }),
+});
+
+export const verifyOtpSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    "string.email": "Vui lòng nhập địa chỉ email hợp lệ",
+    "any.required": "Email là bắt buộc",
+  }),
+  otp: Joi.string().length(6).pattern(/^\d{6}$/).required().messages({
+    "string.length": "Mã OTP phải có đúng 6 chữ số",
+    "string.pattern.base": "Mã OTP chỉ bao gồm các chữ số",
+    "any.required": "Mã OTP là bắt buộc",
+  }),
+});
+
+export const resetPasswordSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    "string.email": "Vui lòng nhập địa chỉ email hợp lệ",
+    "any.required": "Email là bắt buộc",
+  }),
+  otp: Joi.string().length(6).pattern(/^\d{6}$/).required().messages({
+    "string.length": "Mã OTP phải có đúng 6 chữ số",
+    "string.pattern.base": "Mã OTP chỉ bao gồm các chữ số",
+    "any.required": "Mã OTP là bắt buộc",
+  }),
+  newPassword: Joi.string().min(6).max(128).required().messages({
+    "string.min": "Mật khẩu mới phải có ít nhất 6 ký tự",
+    "any.required": "Mật khẩu mới là bắt buộc",
+  }),
+});

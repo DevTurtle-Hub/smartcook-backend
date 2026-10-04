@@ -46,6 +46,7 @@ export class RecipeRepository {
     if (filter.search) {
       const normalizedSearch = normalizeVietnamese(filter.search);
       query.$or = [
+        { $text: { $search: filter.search } },
         { title: { $regex: filter.search, $options: "i" } },
         { description: { $regex: filter.search, $options: "i" } },
         { "ingredients.name": { $regex: filter.search, $options: "i" } },
@@ -99,11 +100,22 @@ export class RecipeRepository {
     }).exec();
   }
 
-  async delete(id: string): Promise<IRecipe | null> {
+  async delete(id: string, deletedBy?: mongoose.Types.ObjectId): Promise<IRecipe | null> {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
-    return Recipe.findByIdAndDelete(id).exec();
+    const recipe = await Recipe.findById(id).exec();
+    if (!recipe) return null;
+    return (recipe as any).softDelete(deletedBy);
+  }
+
+  async restore(id: string): Promise<IRecipe | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
+    const recipe = await Recipe.findOne({ _id: id, isDeleted: true }).exec();
+    if (!recipe) return null;
+    return (recipe as any).restore();
   }
 
   async count(): Promise<number> {

@@ -16,6 +16,12 @@ interface EnvConfig {
   CLOUDINARY_API_SECRET: string;
   GEMINI_API_KEY: string;
   GOOGLE_CLIENT_ID: string;
+  SMTP_HOST: string;
+  SMTP_PORT: number;
+  SMTP_USER: string;
+  SMTP_PASS: string;
+  SMTP_FROM: string;
+  REDIS_URL: string;
 }
 
 const getEnv = (): EnvConfig => {
@@ -45,6 +51,29 @@ const getEnv = (): EnvConfig => {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 
+  const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+  const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const SMTP_USER = process.env.SMTP_USER || "";
+  const SMTP_PASS = process.env.SMTP_PASS || "";
+  const SMTP_FROM = process.env.SMTP_FROM || "SmartCook <no-reply@smartcook.vn>";
+
+  const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+
+  // Validate critical security secrets in production
+  if (NODE_ENV === "production") {
+    const isDefaultOrEmpty = (secret?: string): boolean => {
+      if (!secret || secret.trim() === "") return true;
+      const lower = secret.toLowerCase();
+      return lower.includes("smartcook_default") || lower.includes("change_in_production");
+    };
+
+    if (isDefaultOrEmpty(process.env.JWT_SECRET) || isDefaultOrEmpty(process.env.JWT_REFRESH_SECRET)) {
+      throw new Error(
+        "🚨 [FATAL SECURITY ERROR] Biến môi trường JWT_SECRET và JWT_REFRESH_SECRET hợp lệ là BẮT BUỘC khi chạy ở chế độ production! Không được để trống hoặc sử dụng chuỗi bí mật mặc định."
+      );
+    }
+  }
+
   return {
     PORT,
     NODE_ENV,
@@ -61,6 +90,12 @@ const getEnv = (): EnvConfig => {
     CLOUDINARY_API_SECRET,
     GEMINI_API_KEY,
     GOOGLE_CLIENT_ID,
+    SMTP_HOST,
+    SMTP_PORT,
+    SMTP_USER,
+    SMTP_PASS,
+    SMTP_FROM,
+    REDIS_URL,
   };
 };
 

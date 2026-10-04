@@ -3,6 +3,7 @@ import { recipeService } from "../services/recipe.service";
 import { ApiResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import { RecipeDifficulty } from "../models/Recipe";
+import { cacheService } from "../config/cache";
 
 export class RecipeController {
   getAll = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -57,6 +58,20 @@ export class RecipeController {
     );
   });
 
+  getTrending = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const userId = req.user?._id?.toString();
+    const result = await recipeService.getRecipes(
+      {},
+      1,
+      limit,
+      "rating",
+      "desc",
+      userId
+    );
+    ApiResponse.success(res, result.recipes, "Lấy danh sách công thức thịnh hành thành công");
+  });
+
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const isUserRole = req.user?.role !== "admin";
     const recipeData = {
@@ -65,18 +80,21 @@ export class RecipeController {
       author: isUserRole ? (req.user?.fullName || req.body.author || "Đầu bếp tại gia") : (req.body.author || req.user?.fullName),
     };
     const recipe = await recipeService.createRecipe(recipeData);
+    await cacheService.delByPattern("recipes:*");
     ApiResponse.created(res, recipe, "Recipe created successfully");
   });
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
     const recipe = await recipeService.updateRecipe(id, req.body, req.user);
+    await cacheService.delByPattern("recipes:*");
     ApiResponse.success(res, recipe, "Recipe updated successfully");
   });
 
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
     await recipeService.deleteRecipe(id, req.user);
+    await cacheService.delByPattern("recipes:*");
     ApiResponse.success(res, null, "Recipe deleted successfully");
   });
 }

@@ -1,6 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import softDeletePlugin, { ISoftDeleteDocument } from "./plugins/softDeletePlugin";
 
-export interface IComment extends Document {
+export interface IComment extends ISoftDeleteDocument {
   postId: mongoose.Types.ObjectId;
   author: mongoose.Types.ObjectId;
   content: string;
@@ -63,6 +64,9 @@ const CommentSchema = new Schema<IComment>(
     },
   }
 );
+
+// Soft delete plugin
+CommentSchema.plugin(softDeletePlugin);
 
 CommentSchema.index({ postId: 1, createdAt: -1 });
 

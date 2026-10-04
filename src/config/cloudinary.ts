@@ -39,4 +39,49 @@ export const uploadToCloudinary = (
   });
 };
 
+/**
+ * Extract publicId from a Cloudinary URL
+ * Example: https://res.cloudinary.com/demo/image/upload/v1612345678/smartcook/general/abc123xyz.jpg
+ * Returns: smartcook/general/abc123xyz
+ */
+export const extractCloudinaryPublicId = (url?: string): string | null => {
+  if (!url || typeof url !== "string") return null;
+  if (!url.includes("cloudinary.com")) return null;
+
+  try {
+    const uploadIndex = url.indexOf("/upload/");
+    if (uploadIndex === -1) return null;
+
+    let pathAfterUpload = url.substring(uploadIndex + 8);
+    // Strip version prefix if present, e.g. v123456789/
+    pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, "");
+
+    // Strip file extension if present (.jpg, .png, etc.)
+    const lastDotIndex = pathAfterUpload.lastIndexOf(".");
+    if (lastDotIndex !== -1) {
+      pathAfterUpload = pathAfterUpload.substring(0, lastDotIndex);
+    }
+
+    return pathAfterUpload || null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Delete an asset from Cloudinary by its publicId
+ * @param publicId The public_id of the resource to delete
+ * @returns Promise<boolean>
+ */
+export const deleteFromCloudinary = async (publicId: string): Promise<boolean> => {
+  if (!publicId || typeof publicId !== "string") return false;
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+    return result.result === "ok" || result.result === "not found";
+  } catch (err) {
+    console.warn(`[Cloudinary] Failed to delete asset with publicId: ${publicId}`, err);
+    return false;
+  }
+};
+
 export default cloudinary;

@@ -13,6 +13,7 @@ export class CommunityController {
     const tag = req.query.tag as string | undefined;
     const search = req.query.search as string | undefined;
     const authorId = req.query.authorId as string | undefined;
+    const cursor = req.query.cursor as string | undefined;
 
     const currentUserId = (req.user as any)?._id?.toString();
 
@@ -20,7 +21,8 @@ export class CommunityController {
       { tag, search, authorId },
       page,
       limit,
-      currentUserId
+      currentUserId,
+      cursor
     );
 
     ApiResponse.success(res, result, "Lấy danh sách bài đăng cộng đồng thành công");

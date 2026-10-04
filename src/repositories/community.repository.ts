@@ -8,6 +8,15 @@ export interface PostFilter {
   search?: string;
 }
 
+export interface PaginatedPostsResult {
+  posts: IPost[];
+  total: number;
+  page?: number;
+  totalPages?: number;
+  nextCursor: string | null;
+  hasNextPage: boolean;
+}
+
 export class CommunityRepository {
   /**
    * Create a new community post
@@ -19,13 +28,14 @@ export class CommunityRepository {
   }
 
   /**
-   * Find paginated posts
+   * Find paginated posts (supports both cursor-based and offset-based pagination)
    */
   async findPosts(
     filter: PostFilter = {},
     page = 1,
-    limit = 20
-  ): Promise<{ posts: IPost[]; total: number; page: number; totalPages: number }> {
+    limit = 20,
+    cursor?: string
+  ): Promise<PaginatedPostsResult> {
     const query: Record<string, any> = {};
 
     if (filter.tag) {
@@ -38,29 +48,67 @@ export class CommunityRepository {
 
     if (filter.search) {
       query.$or = [
+        { $text: { $search: filter.search } },
         { caption: { $regex: filter.search, $options: "i" } },
         { dishName: { $regex: filter.search, $options: "i" } },
       ];
     }
 
+    // Cursor-based query branch
+    if (cursor && Types.ObjectId.isValid(cursor)) {
+      const cursorQuery = { ...query, _id: { $lt: new Types.ObjectId(cursor) } };
+
+      const [rawPosts, total] = await Promise.all([
+        Post.find(cursorQuery)
+          .populate("author", "firstName lastName fullName avatar level role")
+          .populate("recipeId", "title image")
+          .sort({ _id: -1 })
+          .limit(limit + 1)
+          .exec(),
+        Post.countDocuments(query).exec(),
+      ]);
+
+      const hasNextPage = rawPosts.length > limit;
+      const posts = hasNextPage ? rawPosts.slice(0, limit) : rawPosts;
+      const nextCursor =
+        hasNextPage && posts.length > 0 ? posts[posts.length - 1]._id.toString() : null;
+
+      return {
+        posts,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit) || 1,
+        nextCursor,
+        hasNextPage,
+      };
+    }
+
+    // Offset-based query branch (page, limit)
     const skip = (page - 1) * limit;
 
     const [posts, total] = await Promise.all([
       Post.find(query)
         .populate("author", "firstName lastName fullName avatar level role")
         .populate("recipeId", "title image")
-        .sort({ createdAt: -1 })
+        .sort({ _id: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
       Post.countDocuments(query).exec(),
     ]);
 
+    const totalPages = Math.ceil(total / limit) || 1;
+    const hasNextPage = page < totalPages;
+    const nextCursor =
+      hasNextPage && posts.length > 0 ? posts[posts.length - 1]._id.toString() : null;
+
     return {
       posts,
       total,
       page,
-      totalPages: Math.ceil(total / limit) || 1,
+      totalPages,
+      nextCursor,
+      hasNextPage,
     };
   }
 
@@ -76,17 +124,40 @@ export class CommunityRepository {
   }
 
   /**
-   * Delete post by ID
+   * Soft delete post by ID
    */
-  async deletePost(id: string): Promise<boolean> {
+  async deletePost(id: string, deletedBy?: string): Promise<boolean> {
     if (!Types.ObjectId.isValid(id)) return false;
-    const post = await Post.findByIdAndDelete(id).exec();
+    const post = await Post.findById(id).exec();
     if (post) {
-      // Also delete associated comments
-      await Comment.deleteMany({ postId: post._id }).exec();
+      const deleterId = deletedBy && Types.ObjectId.isValid(deletedBy) ? new Types.ObjectId(deletedBy) : undefined;
+      await post.softDelete(deleterId);
+      // Also soft delete associated comments
+      await Comment.updateMany(
+        { postId: post._id },
+        { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: deleterId } }
+      ).exec();
       return true;
     }
     return false;
+  }
+
+  /**
+   * Restore soft-deleted post
+   */
+  async restorePost(id: string): Promise<IPost | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
+    const post = await Post.findOne({ _id: id, isDeleted: true }).exec();
+    if (post) {
+      await post.restore();
+      // Restore associated comments
+      await Comment.updateMany(
+        { postId: post._id, isDeleted: true },
+        { $set: { isDeleted: false, deletedAt: null, deletedBy: null } }
+      ).exec();
+      return post;
+    }
+    return null;
   }
 
   /**
@@ -166,18 +237,36 @@ export class CommunityRepository {
   }
 
   /**
-   * Delete comment by ID
+   * Soft delete comment by ID
    */
-  async deleteComment(commentId: string): Promise<boolean> {
+  async deleteComment(commentId: string, deletedBy?: string): Promise<boolean> {
     if (!Types.ObjectId.isValid(commentId)) return false;
-    const comment = await Comment.findByIdAndDelete(commentId).exec();
+    const comment = await Comment.findById(commentId).exec();
     if (comment) {
+      const deleterId = deletedBy && Types.ObjectId.isValid(deletedBy) ? new Types.ObjectId(deletedBy) : undefined;
+      await comment.softDelete(deleterId);
       await Post.findByIdAndUpdate(comment.postId, {
         $inc: { commentsCount: -1 },
       }).exec();
       return true;
     }
     return false;
+  }
+
+  /**
+   * Restore soft-deleted comment
+   */
+  async restoreComment(commentId: string): Promise<IComment | null> {
+    if (!Types.ObjectId.isValid(commentId)) return null;
+    const comment = await Comment.findOne({ _id: commentId, isDeleted: true }).exec();
+    if (comment) {
+      await comment.restore();
+      await Post.findByIdAndUpdate(comment.postId, {
+        $inc: { commentsCount: 1 },
+      }).exec();
+      return comment;
+    }
+    return null;
   }
 }
 
