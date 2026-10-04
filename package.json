@@ -13,6 +13,7 @@
     "test:security:p3": "tsx src/scripts/testPhase3AuthSecurity.ts",
     "test:admin:p4": "tsx src/scripts/testPhase4AdminAndCursor.ts",
     "test:cache:p4": "tsx src/scripts/testPhase4RedisCacheScalability.ts",
+    "test:e2e:all": "tsx src/scripts/runAllE2ETests.ts",
     "test:e2e:phase1": "tsx src/scripts/testE2EPhase1.ts",
     "test:e2e:phase2": "tsx src/scripts/testE2EPhase2.ts",
     "test:e2e:phase3": "tsx src/scripts/testE2EPhase3.ts",
@@ -46,7 +47,9 @@
     "nodemailer": "^10.0.14",
     "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.3.0",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
