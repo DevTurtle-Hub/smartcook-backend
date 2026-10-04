@@ -7,6 +7,11 @@ import {
   updateUserStatusSchema,
   updateUserRoleSchema,
 } from "../validators/admin.validator";
+import { reportController } from "../controllers/report.controller";
+import {
+  getReportsQuerySchema,
+  resolveReportSchema,
+} from "../validators/report.validator";
 
 const router = Router();
 
@@ -32,5 +37,10 @@ router.patch(
   validate(updateUserRoleSchema),
   adminController.updateUserRole
 );
+
+// 5. Quản lý & duyệt báo cáo vi phạm
+router.get("/reports", validate(getReportsQuerySchema, "query"), reportController.getReports);
+router.get("/reports/:id", reportController.getReportById);
+router.patch("/reports/:id", validate(resolveReportSchema), reportController.resolveReport);
 
 export default router;

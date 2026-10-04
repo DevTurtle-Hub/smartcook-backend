@@ -14,6 +14,7 @@ import plannerRoutes from "./planner.route";
 import storeRoutes from "./store.route";
 import notificationRoutes from "./notification.route";
 import rewardRoutes from "./reward.route";
+import reportRoutes from "./report.route";
 
 const router = Router();
 
@@ -42,5 +43,8 @@ router.use("/stores", storeRoutes);
 // Phase 8: Notifications & Daily Rewards
 router.use("/notifications", notificationRoutes);
 router.use("/rewards", rewardRoutes);
+
+// Moderation & Reports
+router.use("/reports", reportRoutes);
 
 export default router;
