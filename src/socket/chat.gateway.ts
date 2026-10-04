@@ -3,6 +3,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { chatService } from "../services/chat.service";
 import { chatRepository } from "../repositories/chat.repository";
 import { AuthenticatedSocket, socketAuthMiddleware } from "./socketAuth";
+import { env } from "../config/env";
 
 let io: SocketIOServer | null = null;
 
@@ -10,9 +11,14 @@ let io: SocketIOServer | null = null;
 const onlineUsers = new Map<string, Set<string>>();
 
 export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
+  const allowedOrigins =
+    env.CORS_ORIGIN === "*"
+      ? "*"
+      : env.CORS_ORIGIN.split(",").map((s) => s.trim());
+
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*", // Allow mobile Expo, web Vite and test scripts
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -43,12 +49,36 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
     /**
      * Join conversation room (1-1 direct chat or public community room)
      */
-    socket.on("join_room", (data: { conversationId: string }) => {
-      if (!data?.conversationId) return;
-      const roomKey = `conv_${data.conversationId}`;
-      socket.join(roomKey);
-      console.log(`👥 [Socket.io] User ${userId} joined room ${roomKey}`);
-    });
+    socket.on(
+      "join_room",
+      async (data: { conversationId: string }, callback?: (res: any) => void) => {
+        try {
+          if (!data?.conversationId) {
+            if (callback) callback({ success: false, error: "Thiếu conversationId" });
+            return;
+          }
+
+          if (userId) {
+            await chatService.validateConversationAccess(data.conversationId, userId);
+          } else {
+            // Unauthenticated guest socket can only join public community rooms
+            const conv = await chatRepository.findById(data.conversationId);
+            if (!conv || conv.type !== "room") {
+              if (callback) callback({ success: false, error: "Không có quyền truy cập cuộc trò chuyện riêng tư" });
+              return;
+            }
+          }
+
+          const roomKey = `conv_${data.conversationId}`;
+          socket.join(roomKey);
+          console.log(`👥 [Socket.io] User ${userId || "guest"} joined room ${roomKey}`);
+          if (callback) callback({ success: true, roomKey });
+        } catch (err: any) {
+          console.warn(`⚠️ [Socket.io] join_room bị từ chối cho user ${userId}:`, err.message);
+          if (callback) callback({ success: false, error: err.message });
+        }
+      }
+    );
 
     /**
      * Leave conversation room
@@ -121,21 +151,31 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
     /**
      * Typing indicators
      */
-    socket.on("typing", (data: { conversationId: string }) => {
-      if (!data?.conversationId) return;
-      socket.to(`conv_${data.conversationId}`).emit("user_typing", {
-        conversationId: data.conversationId,
-        userId,
-        userName: socket.data.user?.fullName || "Ai đó",
-      });
+    socket.on("typing", async (data: { conversationId: string }) => {
+      if (!data?.conversationId || !userId) return;
+      try {
+        await chatService.validateConversationAccess(data.conversationId, userId);
+        socket.to(`conv_${data.conversationId}`).emit("user_typing", {
+          conversationId: data.conversationId,
+          userId,
+          userName: socket.data.user?.fullName || "Ai đó",
+        });
+      } catch {
+        // Silently drop typing indicator for unauthorized users
+      }
     });
 
-    socket.on("stop_typing", (data: { conversationId: string }) => {
-      if (!data?.conversationId) return;
-      socket.to(`conv_${data.conversationId}`).emit("user_stop_typing", {
-        conversationId: data.conversationId,
-        userId,
-      });
+    socket.on("stop_typing", async (data: { conversationId: string }) => {
+      if (!data?.conversationId || !userId) return;
+      try {
+        await chatService.validateConversationAccess(data.conversationId, userId);
+        socket.to(`conv_${data.conversationId}`).emit("user_stop_typing", {
+          conversationId: data.conversationId,
+          userId,
+        });
+      } catch {
+        // Silently drop
+      }
     });
 
     /**

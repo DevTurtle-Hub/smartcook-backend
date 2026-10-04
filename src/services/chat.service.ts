@@ -2,9 +2,40 @@ import { Types } from "mongoose";
 import { chatRepository } from "../repositories/chat.repository";
 import { userRepository } from "../repositories/user.repository";
 import { notificationService } from "./notification.service";
-import { BadRequestError, NotFoundError } from "../utils/errors";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/errors";
 
 export class ChatService {
+  /**
+   * Validate user access permissions to a conversation or room
+   */
+  async validateConversationAccess(conversationId: string, userId: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new BadRequestError("Mã cuộc hội thoại hoặc phòng chat không hợp lệ");
+    }
+
+    const conversation = await chatRepository.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundError("Cuộc hội thoại hoặc phòng chat không tồn tại");
+    }
+
+    // Public community chat rooms are accessible to all authenticated users
+    if (conversation.type === "room") {
+      return conversation;
+    }
+
+    // Direct 1-1 conversations require the user to be a registered participant
+    const isParticipant = conversation.participants?.some((p: any) => {
+      const pId = p?._id ? p._id.toString() : p.toString();
+      return pId === userId;
+    });
+
+    if (!isParticipant) {
+      throw new ForbiddenError("Bạn không có quyền truy cập vào cuộc hội thoại này");
+    }
+
+    return conversation;
+  }
+
   /**
    * Format relative friendly time
    */
@@ -148,10 +179,7 @@ export class ChatService {
       throw new BadRequestError("Nội dung tin nhắn không được để trống");
     }
 
-    const conversation = await chatRepository.findById(conversationId);
-    if (!conversation) {
-      throw new NotFoundError("Cuộc hội thoại hoặc phòng chat không tồn tại");
-    }
+    const conversation = await this.validateConversationAccess(conversationId, senderId);
 
     const message = await chatRepository.saveMessage({
       conversationId: new Types.ObjectId(conversationId) as any,
@@ -212,10 +240,7 @@ export class ChatService {
     limit = 50,
     before?: Date
   ) {
-    const conversation = await chatRepository.findById(conversationId);
-    if (!conversation) {
-      throw new NotFoundError("Cuộc hội thoại hoặc phòng chat không tồn tại");
-    }
+    await this.validateConversationAccess(conversationId, currentUserId);
 
     const messages = await chatRepository.getMessages(conversationId, limit, before);
 

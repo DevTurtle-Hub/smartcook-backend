@@ -83,7 +83,6 @@ export class ChatRepository {
       lastMessage: data.text || (data.imageUri ? "[Hình ảnh]" : ""),
       lastMessageTime: new Date(),
       lastSender: data.sender,
-      $addToSet: { participants: data.sender },
     }).exec();
 
     return await message.populate("sender", "firstName lastName fullName avatar level role");
