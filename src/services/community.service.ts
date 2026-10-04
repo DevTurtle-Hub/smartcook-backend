@@ -50,20 +50,23 @@ export class CommunityService {
   }
 
   /**
-   * Get list of community posts with pagination and filter
+   * Get list of community posts with cursor or page-based pagination and filter
    */
   async getPosts(
     filter: PostFilter = {},
     page = 1,
     limit = 20,
-    currentUserId?: string
+    currentUserId?: string,
+    cursor?: string
   ) {
-    const result = await communityRepository.findPosts(filter, page, limit);
+    const result = await communityRepository.findPosts(filter, page, limit, cursor);
     return {
       posts: result.posts.map((p) => this.enrichPostDTO(p, currentUserId)),
       total: result.total,
       page: result.page,
       totalPages: result.totalPages,
+      nextCursor: result.nextCursor,
+      hasNextPage: result.hasNextPage,
     };
   }
 

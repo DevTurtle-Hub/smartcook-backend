@@ -8,6 +8,15 @@ export interface PostFilter {
   search?: string;
 }
 
+export interface PaginatedPostsResult {
+  posts: IPost[];
+  total: number;
+  page?: number;
+  totalPages?: number;
+  nextCursor: string | null;
+  hasNextPage: boolean;
+}
+
 export class CommunityRepository {
   /**
    * Create a new community post
@@ -19,13 +28,14 @@ export class CommunityRepository {
   }
 
   /**
-   * Find paginated posts
+   * Find paginated posts (supports both cursor-based and offset-based pagination)
    */
   async findPosts(
     filter: PostFilter = {},
     page = 1,
-    limit = 20
-  ): Promise<{ posts: IPost[]; total: number; page: number; totalPages: number }> {
+    limit = 20,
+    cursor?: string
+  ): Promise<PaginatedPostsResult> {
     const query: Record<string, any> = {};
 
     if (filter.tag) {
@@ -44,24 +54,61 @@ export class CommunityRepository {
       ];
     }
 
+    // Cursor-based query branch
+    if (cursor && Types.ObjectId.isValid(cursor)) {
+      const cursorQuery = { ...query, _id: { $lt: new Types.ObjectId(cursor) } };
+
+      const [rawPosts, total] = await Promise.all([
+        Post.find(cursorQuery)
+          .populate("author", "firstName lastName fullName avatar level role")
+          .populate("recipeId", "title image")
+          .sort({ _id: -1 })
+          .limit(limit + 1)
+          .exec(),
+        Post.countDocuments(query).exec(),
+      ]);
+
+      const hasNextPage = rawPosts.length > limit;
+      const posts = hasNextPage ? rawPosts.slice(0, limit) : rawPosts;
+      const nextCursor =
+        hasNextPage && posts.length > 0 ? posts[posts.length - 1]._id.toString() : null;
+
+      return {
+        posts,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit) || 1,
+        nextCursor,
+        hasNextPage,
+      };
+    }
+
+    // Offset-based query branch (page, limit)
     const skip = (page - 1) * limit;
 
     const [posts, total] = await Promise.all([
       Post.find(query)
         .populate("author", "firstName lastName fullName avatar level role")
         .populate("recipeId", "title image")
-        .sort({ createdAt: -1 })
+        .sort({ _id: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
       Post.countDocuments(query).exec(),
     ]);
 
+    const totalPages = Math.ceil(total / limit) || 1;
+    const hasNextPage = page < totalPages;
+    const nextCursor =
+      hasNextPage && posts.length > 0 ? posts[posts.length - 1]._id.toString() : null;
+
     return {
       posts,
       total,
       page,
-      totalPages: Math.ceil(total / limit) || 1,
+      totalPages,
+      nextCursor,
+      hasNextPage,
     };
   }
 
