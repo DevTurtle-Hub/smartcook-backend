@@ -3,6 +3,7 @@ import { ingredientService } from "../services/ingredient.service";
 import { ApiResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import { IngredientCategory } from "../models/Ingredient";
+import { cacheService } from "../config/cache";
 
 export class IngredientController {
   getAll = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -37,23 +38,27 @@ export class IngredientController {
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const ingredient = await ingredientService.createIngredient(req.body);
+    await cacheService.delByPattern("ingredients:*");
     ApiResponse.created(res, ingredient, "Ingredient created successfully");
   });
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
     const ingredient = await ingredientService.updateIngredient(id, req.body);
+    await cacheService.delByPattern("ingredients:*");
     ApiResponse.success(res, ingredient, "Ingredient updated successfully");
   });
 
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
     await ingredientService.deleteIngredient(id);
+    await cacheService.delByPattern("ingredients:*");
     ApiResponse.success(res, null, "Ingredient deleted successfully");
   });
 
   seed = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
     await ingredientService.seedIngredients();
+    await cacheService.delByPattern("ingredients:*");
     ApiResponse.success(res, null, "Master ingredients seeded successfully");
   });
 }

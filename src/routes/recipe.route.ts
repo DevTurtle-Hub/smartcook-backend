@@ -9,13 +9,15 @@ import {
 
 import { uploadSingleImage } from "../middlewares/upload";
 import { processRecipeFormData } from "../middlewares/recipeUpload";
+import { cacheMiddleware } from "../middlewares/cache";
 
 const router = Router();
 
 // 1. Fridge Match Ranking Endpoint (Protected - relies on user's fridge items)
 router.get("/fridge-match", authenticate, recipeController.getFridgeMatch);
 
-// 2. Recipe Listing & Details (Public or Enriched with User Preferences)
+// 2. Recipe Listing, Trending & Details (Public or Enriched with User Preferences)
+router.get("/trending", cacheMiddleware(1800, "recipes:trending"), optionalAuthenticate, recipeController.getTrending);
 router.get("/", optionalAuthenticate, recipeController.getAll);
 router.get("/:id", optionalAuthenticate, recipeController.getById);
 

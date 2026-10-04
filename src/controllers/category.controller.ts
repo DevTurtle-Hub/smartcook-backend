@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { categoryService } from "../services/category.service";
 import { ApiResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
+import { cacheService } from "../config/cache";
 
 export class CategoryController {
   getAll = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -18,18 +19,21 @@ export class CategoryController {
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const category = await categoryService.createCategory(req.body);
+    await cacheService.delByPattern("categories:*");
     ApiResponse.created(res, category, "Category created successfully");
   });
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
     const category = await categoryService.updateCategory(id, req.body);
+    await cacheService.delByPattern("categories:*");
     ApiResponse.success(res, category, "Category updated successfully");
   });
 
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params as { id: string };
     await categoryService.deleteCategory(id);
+    await cacheService.delByPattern("categories:*");
     ApiResponse.success(res, null, "Category deleted successfully");
   });
 }
