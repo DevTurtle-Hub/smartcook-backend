@@ -248,7 +248,7 @@ graph TD
 | **B5** | Triển khai Forgot/Reset Password OTP & NoSQL Sanitize | `smartcook-backend` | Gửi mail OTP thành công; đổi mật khẩu và login mật khẩu mới; chặn payload `$gt`. |
 | **B6** | Đấu nối API thật cho các trang Web Admin còn mock | `smartcook-web`, `smartcook-backend` | Các trang AI Engine, Moderation, Settings hoạt động với dữ liệu backend thật. |
 | **B7** | Caching Redis & Cursor Pagination Community | `smartcook-backend` | ✅ **Đã hoàn thành:** Caching Categories (24h), Ingredients (12h), Stores (6h), Trending (30m) có auto-invalidation; Feed cursor pagination < 15ms. |
-| **B8** | Docker hóa Production & Winston Logger | `smartcook-backend` | `docker compose -f docker-compose.prod.yml build` thành công; log ghi chuẩn JSON. |
+| **B8** | Docker hóa Production & Winston Logger | `smartcook-backend`, `smartcook-web` | ✅ **Đã hoàn thành:** Multi-stage Dockerfile (Node 20 Alpine & Nginx SPA); `docker-compose.prod.yml`; Winston structured daily rotation; CI/CD workflow & Master E2E runner 100% PASS. |
 
 ---
 
@@ -263,7 +263,12 @@ graph TD
 7. [x] Quy trình tố cáo vi phạm (Report) hoạt động trơn tru từ Mobile/Web Client đến Web Admin.
 8. [x] Đấu nối toàn bộ API thật cho các trang Web Admin (`AIEnginePage.tsx`, `CommunityModerationPage.tsx`, `SystemSettingsPage.tsx`).
 9. [x] Phân trang con trỏ (Cursor-based Pagination) trên Community Feed đảm bảo tính ổn định và tốc độ cao.
-10. [x] Build thành công 100% trên cả 3 repository:
+10. [x] Tầng Redis Caching đa lớp (Categories 24h, Ingredients 12h, Stores 6h, Trending 30m) có cơ chế auto-invalidation.
+11. [x] Hệ thống Structured Logging với Winston ghi log JSON có cấu trúc, xoay vòng file hàng ngày (`winston-daily-rotate-file`).
+12. [x] Đóng gói Docker Multi-Stage nhẹ, an toàn (`USER node` không đặc quyền), cấu hình Production Compose đầy đủ backend, web, redis, mongo.
+13. [x] CI/CD Workflow tự động kiểm tra code quality, lint, build và verify Docker image trước mỗi Pull Request.
+14. [x] Master E2E Automated Test Suite (`npm run test:e2e:all`) kiểm thử toàn bộ hệ thống từ P0 đến Phase 4 đạt 100% PASS.
+15. [x] Build thành công 100% trên cả 3 repository:
    - Backend: `npm run build` không lỗi (tsc pass 100%).
    - Web: `npm run build` bundle tối ưu không warning nghiêm trọng (tsc & vite build pass 100%).
    - Mobile: `npm run type-check` và `npm run lint` pass 100%.
