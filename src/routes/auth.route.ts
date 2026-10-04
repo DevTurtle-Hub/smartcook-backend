@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authController } from "../controllers/auth.controller";
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/auth";
+import { authLimiter } from "../middlewares/rateLimit";
 import {
   registerSchema,
   loginSchema,
@@ -13,11 +14,11 @@ import {
 
 const router = Router();
 
-// Public Authentication Endpoints
-router.post("/register", validate(registerSchema), authController.register);
-router.post("/login", validate(loginSchema), authController.login);
-router.post("/google", validate(googleAuthSchema), authController.googleLogin);
-router.post("/refresh-token", validate(refreshTokenSchema), authController.refreshToken);
+// Public Authentication Endpoints (protected by strict rate limiting)
+router.post("/register", authLimiter, validate(registerSchema), authController.register);
+router.post("/login", authLimiter, validate(loginSchema), authController.login);
+router.post("/google", authLimiter, validate(googleAuthSchema), authController.googleLogin);
+router.post("/refresh-token", authLimiter, validate(refreshTokenSchema), authController.refreshToken);
 
 // Protected User Profile & Session Endpoints
 router.post("/logout", authenticate, authController.logout);
