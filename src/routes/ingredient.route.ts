@@ -2,6 +2,7 @@ import { Router } from "express";
 import { ingredientController } from "../controllers/ingredient.controller";
 import { validate } from "../middlewares/validate";
 import { authenticate, authorize } from "../middlewares/auth";
+import { cacheMiddleware } from "../middlewares/cache";
 import {
   createIngredientSchema,
   updateIngredientSchema,
@@ -9,10 +10,10 @@ import {
 
 const router = Router();
 
-// Public Routes (Mobile App)
-router.get("/", ingredientController.getAll);
-router.get("/category/:category", ingredientController.getByCategory);
-router.get("/:id", ingredientController.getById);
+// Public Routes (Mobile App) - Cached for 12h
+router.get("/", cacheMiddleware(43200, "ingredients"), ingredientController.getAll);
+router.get("/category/:category", cacheMiddleware(43200, "ingredients"), ingredientController.getByCategory);
+router.get("/:id", cacheMiddleware(43200, "ingredients"), ingredientController.getById);
 
 // Admin Routes (Web Admin)
 router.post(

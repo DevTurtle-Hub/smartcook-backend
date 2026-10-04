@@ -5,6 +5,7 @@ import {
 import { IIngredient, IngredientCategory } from "../models/Ingredient";
 import { MASTER_INGREDIENTS } from "../data/seedIngredients";
 import { NotFoundError } from "../utils/errors";
+import { cacheService } from "../config/cache";
 
 export class IngredientService {
   async getIngredients(
@@ -40,7 +41,9 @@ export class IngredientService {
   }
 
   async createIngredient(data: Partial<IIngredient>): Promise<IIngredient> {
-    return ingredientRepository.create(data);
+    const created = await ingredientRepository.create(data);
+    await cacheService.delByPattern("ingredients:*");
+    return created;
   }
 
   async updateIngredient(
@@ -51,6 +54,7 @@ export class IngredientService {
     if (!updated) {
       throw new NotFoundError("Ingredient not found");
     }
+    await cacheService.delByPattern("ingredients:*");
     return updated;
   }
 
@@ -59,6 +63,7 @@ export class IngredientService {
     if (!deleted) {
       throw new NotFoundError("Ingredient not found");
     }
+    await cacheService.delByPattern("ingredients:*");
   }
 
   async seedIngredients(): Promise<void> {

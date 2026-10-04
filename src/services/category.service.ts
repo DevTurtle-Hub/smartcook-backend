@@ -1,6 +1,7 @@
 import { categoryRepository } from "../repositories/category.repository";
 import { ICategory } from "../models/Category";
 import { ConflictError, NotFoundError } from "../utils/errors";
+import { cacheService } from "../config/cache";
 
 export const INITIAL_CATEGORIES = [
   { code: "all", name: "Tất cả", icon: "restaurant-outline", order: 0 },
@@ -39,7 +40,9 @@ export class CategoryService {
         throw new ConflictError(`Category code '${data.code}' already exists`);
       }
     }
-    return categoryRepository.create(data);
+    const created = await categoryRepository.create(data);
+    await cacheService.delByPattern("categories:*");
+    return created;
   }
 
   async updateCategory(id: string, data: Partial<ICategory>): Promise<ICategory> {
@@ -47,6 +50,7 @@ export class CategoryService {
     if (!updated) {
       throw new NotFoundError("Category not found");
     }
+    await cacheService.delByPattern("categories:*");
     return updated;
   }
 
@@ -55,6 +59,7 @@ export class CategoryService {
     if (!deleted) {
       throw new NotFoundError("Category not found");
     }
+    await cacheService.delByPattern("categories:*");
   }
 
   async seedCategories(): Promise<void> {
