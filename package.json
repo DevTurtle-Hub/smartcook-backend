@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "lint": "tsc --noEmit",
     "start": "node dist/server.js",
+    "test:security:p0": "tsx src/scripts/testP0Security.ts",
     "test:e2e:phase1": "tsx src/scripts/testE2EPhase1.ts",
     "test:e2e:phase2": "tsx src/scripts/testE2EPhase2.ts",
     "test:e2e:phase3": "tsx src/scripts/testE2EPhase3.ts",
