@@ -12,6 +12,7 @@ import {
   getReportsQuerySchema,
   resolveReportSchema,
 } from "../validators/report.validator";
+import { systemSettingController } from "../controllers/systemSetting.controller";
 
 const router = Router();
 
@@ -42,5 +43,14 @@ router.patch(
 router.get("/reports", validate(getReportsQuerySchema, "query"), reportController.getReports);
 router.get("/reports/:id", reportController.getReportById);
 router.patch("/reports/:id", validate(resolveReportSchema), reportController.resolveReport);
+
+// 6. Cấu hình hệ thống & API Keys
+router.get("/settings", systemSettingController.getSettings);
+router.patch("/settings", systemSettingController.updateSettings);
+
+// 7. Cấu hình & giám sát AI Engine
+router.get("/ai-engine/config", systemSettingController.getAIEngineConfig);
+router.patch("/ai-engine/config", systemSettingController.updateAIEngineConfig);
+router.get("/ai-engine/status", systemSettingController.getAIEngineStatus);
 
 export default router;

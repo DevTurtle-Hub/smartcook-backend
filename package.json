@@ -11,6 +11,7 @@
     "test:security:p0": "tsx src/scripts/testP0Security.ts",
     "test:hardening:p2": "tsx src/scripts/testPhase2Hardening.ts",
     "test:security:p3": "tsx src/scripts/testPhase3AuthSecurity.ts",
+    "test:admin:p4": "tsx src/scripts/testPhase4AdminAndCursor.ts",
     "test:e2e:phase1": "tsx src/scripts/testE2EPhase1.ts",
     "test:e2e:phase2": "tsx src/scripts/testE2EPhase2.ts",
     "test:e2e:phase3": "tsx src/scripts/testE2EPhase3.ts",
