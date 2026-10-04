@@ -254,14 +254,16 @@ graph TD
 
 ## ✅ Tiêu Chuẩn Nghiệm Thu Release (Production Release Checklist)
 
-1. [ ] Không còn lỗ hổng bypass tin nhắn hoặc đọc trộm chat Socket.IO / REST.
-2. [ ] Server từ chối chạy nếu `NODE_ENV=production` mà dùng secret mặc định.
-3. [ ] Nhóm endpoint xác thực có rate limit ngăn chặn brute-force.
-4. [ ] Web Client duy trì phiên đăng nhập ổn định thông qua refresh token rotation.
-5. [ ] Mobile đạt 0 lỗi ESLint, token lưu trong phần cứng an toàn (`expo-secure-store`).
-6. [ ] Toàn bộ các thao tác xoá bài viết / công thức / người dùng hỗ trợ xoá mềm và khôi phục.
-7. [ ] Quy trình tố cáo vi phạm (Report) hoạt động trơn tru từ Mobile/Web Client đến Web Admin.
-8. [ ] Build thành công 100% trên cả 3 repository:
-   - Backend: `npm run build` không lỗi.
-   - Web: `npm run build` bundle tối ưu không warning nghiêm trọng.
+1. [x] Không còn lỗ hổng bypass tin nhắn hoặc đọc trộm chat Socket.IO / REST.
+2. [x] Server từ chối chạy nếu `NODE_ENV=production` mà dùng secret mặc định.
+3. [x] Nhóm endpoint xác thực có rate limit ngăn chặn brute-force.
+4. [x] Web Client duy trì phiên đăng nhập ổn định thông qua refresh token rotation.
+5. [x] Mobile đạt 0 lỗi ESLint, token lưu trong phần cứng an toàn (`expo-secure-store`).
+6. [x] Toàn bộ các thao tác xoá bài viết / công thức / người dùng hỗ trợ xoá mềm và khôi phục.
+7. [x] Quy trình tố cáo vi phạm (Report) hoạt động trơn tru từ Mobile/Web Client đến Web Admin.
+8. [x] Đấu nối toàn bộ API thật cho các trang Web Admin (`AIEnginePage.tsx`, `CommunityModerationPage.tsx`, `SystemSettingsPage.tsx`).
+9. [x] Phân trang con trỏ (Cursor-based Pagination) trên Community Feed đảm bảo tính ổn định và tốc độ cao.
+10. [x] Build thành công 100% trên cả 3 repository:
+   - Backend: `npm run build` không lỗi (tsc pass 100%).
+   - Web: `npm run build` bundle tối ưu không warning nghiêm trọng (tsc & vite build pass 100%).
    - Mobile: `npm run type-check` và `npm run lint` pass 100%.
