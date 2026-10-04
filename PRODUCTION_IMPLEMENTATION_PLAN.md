@@ -247,7 +247,7 @@ graph TD
 | **B4** | Triển khai Soft Delete & Bảng `Report.ts` | `smartcook-backend` | Xoá bài không mất DB; Admin xem và xử lý báo cáo vi phạm thành công. |
 | **B5** | Triển khai Forgot/Reset Password OTP & NoSQL Sanitize | `smartcook-backend` | Gửi mail OTP thành công; đổi mật khẩu và login mật khẩu mới; chặn payload `$gt`. |
 | **B6** | Đấu nối API thật cho các trang Web Admin còn mock | `smartcook-web`, `smartcook-backend` | Các trang AI Engine, Moderation, Settings hoạt động với dữ liệu backend thật. |
-| **B7** | Caching Redis & Cursor Pagination Community | `smartcook-backend` | Tải trang feed < 15ms; Redis trả kết quả cache cho Category/Ingredient. |
+| **B7** | Caching Redis & Cursor Pagination Community | `smartcook-backend` | ✅ **Đã hoàn thành:** Caching Categories (24h), Ingredients (12h), Stores (6h), Trending (30m) có auto-invalidation; Feed cursor pagination < 15ms. |
 | **B8** | Docker hóa Production & Winston Logger | `smartcook-backend` | `docker compose -f docker-compose.prod.yml build` thành công; log ghi chuẩn JSON. |
 
 ---
