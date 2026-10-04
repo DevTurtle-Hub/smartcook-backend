@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/errors";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 
 export const errorHandler = (
   err: any,
@@ -59,9 +60,8 @@ export const errorHandler = (
 
   // Log error details for server diagnostics
   if (env.NODE_ENV !== "test") {
-    console.error(`[Error] ${req.method} ${req.originalUrl}:`, {
+    logger.error(`${req.method} ${req.originalUrl}: ${err.message}`, {
       name: err.name,
-      message: err.message,
       statusCode,
       stack: env.NODE_ENV === "development" ? err.stack : undefined,
     });

@@ -11,6 +11,8 @@ import { mongoSanitize, hppProtection } from "./middlewares/security";
 import apiRoutes from "./routes";
 import errorHandler from "./middlewares/errorHandler";
 
+import { logger, morganStream } from "./config/logger";
+
 const app: Application = express();
 
 // Security HTTP Headers
@@ -19,8 +21,8 @@ app.use(helmet());
 // Gzip compression
 app.use(compression());
 
-// HTTP Request Logging
-app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+// HTTP Request Logging with Winston
+app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev", { stream: morganStream }));
 
 // CORS Configuration
 app.use(
