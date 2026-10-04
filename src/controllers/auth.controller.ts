@@ -65,6 +65,31 @@ export class AuthController {
       ApiResponse.success(res, updatedUser, "Profile updated successfully");
     }
   );
+
+  forgotPassword = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const result = await authService.forgotPassword(req.body.email);
+      ApiResponse.success(res, null, result.message);
+    }
+  );
+
+  verifyOtp = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const result = await authService.verifyOtp(req.body.email, req.body.otp);
+      ApiResponse.success(res, result, result.message);
+    }
+  );
+
+  resetPassword = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const result = await authService.resetPassword(
+        req.body.email,
+        req.body.otp,
+        req.body.newPassword
+      );
+      ApiResponse.success(res, null, result.message);
+    }
+  );
 }
 
 export const authController = new AuthController();

@@ -3,8 +3,12 @@ import { userRepository } from "../repositories/user.repository";
 import { IUser, IUserPreferences } from "../models/User";
 import { JwtHelper, AuthTokens } from "../utils/jwt";
 import { env } from "../config/env";
+import bcrypt from "bcryptjs";
 import { deleteFromCloudinary, extractCloudinaryPublicId } from "../config/cloudinary";
+import PasswordResetOtp from "../models/PasswordResetOtp";
+import { emailService } from "./email.service";
 import {
+  BadRequestError,
   ConflictError,
   UnauthorizedError,
   NotFoundError,
@@ -300,6 +304,133 @@ export class AuthService {
       level: user.level,
       preferences: user.preferences,
       favoriteRecipeIds: user.favoriteRecipeIds,
+    };
+  }
+
+  /**
+   * 1. Request password reset OTP
+   */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await userRepository.findByEmail(cleanEmail);
+
+    // If user does not exist, return generic success message to prevent user enumeration attacks
+    if (!user) {
+      return {
+        message: "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được mã OTP xác thực.",
+      };
+    }
+
+    // Invalidate existing active OTPs for this email
+    await PasswordResetOtp.updateMany(
+      { email: cleanEmail, isUsed: false },
+      { $set: { isUsed: true } }
+    ).exec();
+
+    // Generate random 6-digit OTP
+    const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const salt = await bcrypt.genSalt(10);
+    const otpHash = await bcrypt.hash(rawOtp, salt);
+
+    // Save with 15-minute expiration
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await PasswordResetOtp.create({
+      email: cleanEmail,
+      otpHash,
+      expiresAt,
+      isUsed: false,
+      attempts: 0,
+    });
+
+    // Send email with OTP
+    await emailService.sendPasswordResetOtp(cleanEmail, rawOtp, user.fullName);
+
+    return {
+      message: "Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn.",
+    };
+  }
+
+  /**
+   * 2. Verify OTP
+   */
+  async verifyOtp(email: string, otp: string): Promise<{ valid: boolean; message: string }> {
+    const cleanEmail = email.toLowerCase().trim();
+    const record = await PasswordResetOtp.findOne({
+      email: cleanEmail,
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    if (!record) {
+      throw new BadRequestError("Mã OTP không hợp lệ hoặc đã hết hạn (chỉ có hiệu lực trong 15 phút)");
+    }
+
+    if (record.attempts >= 5) {
+      record.isUsed = true;
+      await record.save();
+      throw new BadRequestError("Bạn đã nhập sai mã OTP quá 5 lần. Vui lòng yêu cầu mã OTP mới.");
+    }
+
+    const isMatch = await bcrypt.compare(otp, record.otpHash);
+    if (!isMatch) {
+      record.attempts += 1;
+      await record.save();
+      throw new BadRequestError(`Mã OTP không chính xác. Bạn còn ${5 - record.attempts} lần thử.`);
+    }
+
+    return {
+      valid: true,
+      message: "Mã OTP hợp lệ. Bạn có thể tiến hành đặt lại mật khẩu mới.",
+    };
+  }
+
+  /**
+   * 3. Reset Password
+   */
+  async resetPassword(
+    email: string,
+    otp: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. Re-verify OTP to ensure atomicity
+    const record = await PasswordResetOtp.findOne({
+      email: cleanEmail,
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    if (!record) {
+      throw new BadRequestError("Mã OTP không hợp lệ hoặc đã hết hạn");
+    }
+
+    const isMatch = await bcrypt.compare(otp, record.otpHash);
+    if (!isMatch) {
+      throw new BadRequestError("Mã OTP không chính xác");
+    }
+
+    // 2. Find user
+    const user = await userRepository.findByEmail(cleanEmail);
+    if (!user) {
+      throw new NotFoundError("Tài khoản người dùng không tồn tại");
+    }
+
+    // 3. Mark OTP as used
+    record.isUsed = true;
+    await record.save();
+
+    // 4. Update password & revoke existing refresh token
+    user.password = newPassword;
+    user.refreshToken = undefined;
+    await user.save();
+
+    return {
+      message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới của bạn.",
     };
   }
 }
