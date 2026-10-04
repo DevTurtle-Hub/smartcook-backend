@@ -45,6 +45,21 @@ const getEnv = (): EnvConfig => {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 
+  // Validate critical security secrets in production
+  if (NODE_ENV === "production") {
+    const isDefaultOrEmpty = (secret?: string): boolean => {
+      if (!secret || secret.trim() === "") return true;
+      const lower = secret.toLowerCase();
+      return lower.includes("smartcook_default") || lower.includes("change_in_production");
+    };
+
+    if (isDefaultOrEmpty(process.env.JWT_SECRET) || isDefaultOrEmpty(process.env.JWT_REFRESH_SECRET)) {
+      throw new Error(
+        "🚨 [FATAL SECURITY ERROR] Biến môi trường JWT_SECRET và JWT_REFRESH_SECRET hợp lệ là BẮT BUỘC khi chạy ở chế độ production! Không được để trống hoặc sử dụng chuỗi bí mật mặc định."
+      );
+    }
+  }
+
   return {
     PORT,
     NODE_ENV,
