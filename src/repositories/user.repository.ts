@@ -104,6 +104,20 @@ export class UserRepository {
 
     return user.save();
   }
+
+  async softDelete(userId: string, deletedBy?: mongoose.Types.ObjectId): Promise<IUser | null> {
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) return null;
+    const user = await User.findById(userId).exec();
+    if (!user) return null;
+    return (user as any).softDelete(deletedBy);
+  }
+
+  async restore(userId: string): Promise<IUser | null> {
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) return null;
+    const user = await User.findOne({ _id: userId, isDeleted: true }).exec();
+    if (!user) return null;
+    return (user as any).restore();
+  }
 }
 
 export const userRepository = new UserRepository();

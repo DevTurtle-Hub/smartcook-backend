@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import softDeletePlugin, { ISoftDeleteDocument } from "./plugins/softDeletePlugin";
 
 export type ReactionType = "like" | "love" | "haha" | "wow" | "sad" | "angry";
 
@@ -16,7 +17,7 @@ export interface IPostReactionCounts {
   angry: number;
 }
 
-export interface IPost extends Document {
+export interface IPost extends ISoftDeleteDocument {
   author: mongoose.Types.ObjectId;
   dishName: string;
   caption: string;
@@ -157,9 +158,18 @@ const PostSchema = new Schema<IPost>(
   }
 );
 
+// Soft delete plugin
+PostSchema.plugin(softDeletePlugin);
+
 // Indexes
 PostSchema.index({ createdAt: -1 });
 PostSchema.index({ tags: 1, createdAt: -1 });
+
+// Full-text search index
+PostSchema.index(
+  { dishName: "text", caption: "text", tags: "text" },
+  { weights: { dishName: 8, caption: 4, tags: 2 }, default_language: "none" }
+);
 
 export const Post: Model<IPost> =
   mongoose.models.Post || mongoose.model<IPost>("Post", PostSchema);

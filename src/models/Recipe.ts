@@ -1,5 +1,6 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import { normalizeVietnamese } from "../utils/text";
+import softDeletePlugin, { ISoftDeleteDocument } from "./plugins/softDeletePlugin";
 
 export type RecipeDifficulty = "Dễ" | "Trung bình" | "Nâng cao";
 
@@ -34,7 +35,7 @@ export interface IRecipeNutrition {
   fatGrams?: number;
 }
 
-export interface IRecipe extends Document {
+export interface IRecipe extends ISoftDeleteDocument {
   title: string;
   author: string;
   authorId?: mongoose.Types.ObjectId;
@@ -328,12 +329,21 @@ RecipeSchema.virtual("category").get(function (this: IRecipe) {
   return this.categoryCode;
 });
 
-// Full-text search index on title, description, and tags
-RecipeSchema.index({
-  title: "text",
-  description: "text",
-  tags: "text",
-});
+// Soft delete plugin
+RecipeSchema.plugin(softDeletePlugin);
+
+// Full-text search index on title, description, and tags with weights
+RecipeSchema.index(
+  {
+    title: "text",
+    description: "text",
+    tags: "text",
+  },
+  {
+    weights: { title: 10, tags: 5, description: 1 },
+    default_language: "none",
+  }
+);
 
 export const Recipe: Model<IRecipe> = mongoose.model<IRecipe>(
   "Recipe",

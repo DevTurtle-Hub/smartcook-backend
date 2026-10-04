@@ -1,5 +1,6 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
+import softDeletePlugin, { ISoftDeleteDocument } from "./plugins/softDeletePlugin";
 
 export type PortionType = "1" | "2" | "3-4" | "5+";
 export type HealthGoalType = "healthy" | "loss" | "muscle" | "budget";
@@ -35,7 +36,7 @@ export interface IUserCheckIn {
   streakDays: number;
 }
 
-export interface IUser extends Document {
+export interface IUser extends ISoftDeleteDocument {
   firstName: string;
   lastName: string;
   fullName: string;
@@ -234,6 +235,9 @@ UserSchema.methods.comparePassword = async function (
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+// Soft delete plugin
+UserSchema.plugin(softDeletePlugin);
 
 export const User: Model<IUser> = mongoose.model<IUser>("User", UserSchema);
 export default User;

@@ -38,6 +38,7 @@ export class CommunityRepository {
 
     if (filter.search) {
       query.$or = [
+        { $text: { $search: filter.search } },
         { caption: { $regex: filter.search, $options: "i" } },
         { dishName: { $regex: filter.search, $options: "i" } },
       ];
@@ -76,17 +77,40 @@ export class CommunityRepository {
   }
 
   /**
-   * Delete post by ID
+   * Soft delete post by ID
    */
-  async deletePost(id: string): Promise<boolean> {
+  async deletePost(id: string, deletedBy?: string): Promise<boolean> {
     if (!Types.ObjectId.isValid(id)) return false;
-    const post = await Post.findByIdAndDelete(id).exec();
+    const post = await Post.findById(id).exec();
     if (post) {
-      // Also delete associated comments
-      await Comment.deleteMany({ postId: post._id }).exec();
+      const deleterId = deletedBy && Types.ObjectId.isValid(deletedBy) ? new Types.ObjectId(deletedBy) : undefined;
+      await post.softDelete(deleterId);
+      // Also soft delete associated comments
+      await Comment.updateMany(
+        { postId: post._id },
+        { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: deleterId } }
+      ).exec();
       return true;
     }
     return false;
+  }
+
+  /**
+   * Restore soft-deleted post
+   */
+  async restorePost(id: string): Promise<IPost | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
+    const post = await Post.findOne({ _id: id, isDeleted: true }).exec();
+    if (post) {
+      await post.restore();
+      // Restore associated comments
+      await Comment.updateMany(
+        { postId: post._id, isDeleted: true },
+        { $set: { isDeleted: false, deletedAt: null, deletedBy: null } }
+      ).exec();
+      return post;
+    }
+    return null;
   }
 
   /**
@@ -166,18 +190,36 @@ export class CommunityRepository {
   }
 
   /**
-   * Delete comment by ID
+   * Soft delete comment by ID
    */
-  async deleteComment(commentId: string): Promise<boolean> {
+  async deleteComment(commentId: string, deletedBy?: string): Promise<boolean> {
     if (!Types.ObjectId.isValid(commentId)) return false;
-    const comment = await Comment.findByIdAndDelete(commentId).exec();
+    const comment = await Comment.findById(commentId).exec();
     if (comment) {
+      const deleterId = deletedBy && Types.ObjectId.isValid(deletedBy) ? new Types.ObjectId(deletedBy) : undefined;
+      await comment.softDelete(deleterId);
       await Post.findByIdAndUpdate(comment.postId, {
         $inc: { commentsCount: -1 },
       }).exec();
       return true;
     }
     return false;
+  }
+
+  /**
+   * Restore soft-deleted comment
+   */
+  async restoreComment(commentId: string): Promise<IComment | null> {
+    if (!Types.ObjectId.isValid(commentId)) return null;
+    const comment = await Comment.findOne({ _id: commentId, isDeleted: true }).exec();
+    if (comment) {
+      await comment.restore();
+      await Post.findByIdAndUpdate(comment.postId, {
+        $inc: { commentsCount: 1 },
+      }).exec();
+      return comment;
+    }
+    return null;
   }
 }
 
