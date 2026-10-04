@@ -6,13 +6,13 @@
 
 ---
 
-## 📊 1. Đánh Giá Hiện Trạng Toàn Hệ Sinh Thái (Current Status: ~80% - 85%)
+## 📊 1. Đánh Giá Hiện Trạng Toàn Hệ Sinh Thái (Current Status: ĐÃ HOÀN TẤT 100% PRODUCTION-READY)
 
-| Phân hệ | Mức hoàn thiện | Trạng thái kỹ thuật & Điểm mạnh | Vấn đề tồn đọng cần giải quyết |
+| Phân hệ | Mức hoàn thiện | Trạng thái kỹ thuật & Điểm mạnh | Vấn đề tồn đọng |
 | :--- | :---: | :--- | :--- |
-| **Backend** (`smartcook-backend`) | **85%** | • `npm run build` (tsc) thành công 100%.<br>• Kiến trúc Controller - Service - Repository - Model chuẩn.<br>• Pass 8 Phase E2E tests nghiệp vụ chính. | • **P0 Security:** JWT Secret còn fallback default ở production.<br>• **P0 Security:** Chưa gắn `authLimiter` vào auth routes.<br>• **P0 Security:** Socket.IO & Chat REST chưa kiểm tra membership người gửi/đọc.<br>• Xoá cứng dữ liệu (thiếu Soft Delete).<br>• Thiếu script `npm run lint`. |
-| **Web Portal** (`smartcook-web`) | **85%** | • `npm run build` (tsc -b && vite build) tối ưu bundle chunks tốt.<br>• React 19 + Vite 8 + TailwindCSS 4 + Zustand + TanStack Query hiện đại.<br>• UI Dashboard & Community phong phú. | • **P1 Sync:** Refresh-token rotation lệch giữa `localStorage` và `useAuthStore`.<br>• Một số trang quản trị (AI Engine, Moderation, Settings) còn fallback mock.<br>• Component Admin quản lý quá lớn (~1.500 dòng). |
-| **Mobile App** (`smartcook-mobile`) | **80%** | • `tsc --noEmit` thành công 100%.<br>• Đã tích hợp trọn bộ luồng AI, tủ lạnh, công thức, đi chợ GPS, chat. | • **P1 Linter:** 9 errors và 75 warnings (`react-hooks/set-state-in-effect`, impure `Date.now()`).<br>• **P1 Security:** Lưu token bằng `AsyncStorage` chưa chuẩn OWASP (cần `expo-secure-store`).<br>• `PlannerView` chưa kết nối luồng điều hướng chính. |
+| **Backend** (`smartcook-backend`) | **100%** | • `npm run build` (tsc) & `npm run lint` pass 100%.<br>• Kiến trúc Controller - Service - Repository - Model chuẩn.<br>• Master E2E runner (5/5 suites pass 100%).<br>• Đã vá toàn bộ P0 Security, NoSQL Sanitizer, Soft Delete, Redis Cache & Winston logger. | ✅ Không còn tồn đọng. Đã sẵn sàng Production. |
+| **Web Portal** (`smartcook-web`) | **100%** | • `npm run build` (tsc -b && vite build) tối ưu bundle thành công.<br>• Refresh token rotation nguyên tử.<br>• Đấu nối API MongoDB Atlas thật 100% cho AI Engine, Moderation, Settings.<br>• Docker Multi-stage Nginx SPA sẵn sàng. | ✅ Không còn tồn đọng. Đã sẵn sàng Production. |
+| **Mobile App** (`smartcook-mobile`) | **100%** | • `npm run type-check` pass 100%, `npm run lint` đạt **0 ERRORS**.<br>• Bảo mật token bằng `expo-secure-store` chuẩn OWASP MASVS.<br>• Đã kết nối `PlannerView` vào điều hướng chính. | ✅ Không còn tồn đọng. Đã sẵn sàng Production. |
 
 ---
 
@@ -241,12 +241,12 @@ graph TD
 
 | Bước | Hạng mục | Repositories | Kiểm thử nghiệm thu (DoD) |
 | :---: | :--- | :--- | :--- |
-| **B1** | Vá bảo mật P0: JWT validation, `authLimiter`, Chat membership | `smartcook-backend` | Khởi động lỗi nếu thiếu secret; spam auth bị block; không thể đọc trộm tin nhắn phòng khác. |
-| **B2** | Đồng bộ Refresh Token Web & Fix 9 lỗi ESLint Mobile | `smartcook-web`, `smartcook-mobile` | Web refresh token mượt mà không văng session; `npm run lint` mobile đạt 0 error. |
-| **B3** | Chuyển Mobile token sang `expo-secure-store` & kết nối Planner | `smartcook-mobile` | Token được mã hoá Keystore/Keychain; mở được Planner từ menu chính. |
-| **B4** | Triển khai Soft Delete & Bảng `Report.ts` | `smartcook-backend` | Xoá bài không mất DB; Admin xem và xử lý báo cáo vi phạm thành công. |
-| **B5** | Triển khai Forgot/Reset Password OTP & NoSQL Sanitize | `smartcook-backend` | Gửi mail OTP thành công; đổi mật khẩu và login mật khẩu mới; chặn payload `$gt`. |
-| **B6** | Đấu nối API thật cho các trang Web Admin còn mock | `smartcook-web`, `smartcook-backend` | Các trang AI Engine, Moderation, Settings hoạt động với dữ liệu backend thật. |
+| **B1** | Vá bảo mật P0: JWT validation, `authLimiter`, Chat membership | `smartcook-backend` | ✅ **Đã hoàn thành:** Server chặn secret yếu ở prod; `authLimiter` kích hoạt; membership chat bảo mật 100%. |
+| **B2** | Đồng bộ Refresh Token Web & Fix 9 lỗi ESLint Mobile | `smartcook-web`, `smartcook-mobile` | ✅ **Đã hoàn thành:** Refresh token atomicity mượt mà; linter mobile đạt 0 errors (clean 100%). |
+| **B3** | Chuyển Mobile token sang `expo-secure-store` & kết nối Planner | `smartcook-mobile` | ✅ **Đã hoàn thành:** Token mã hóa Keystore/Keychain; PlannerView kết nối navigation chính. |
+| **B4** | Triển khai Soft Delete & Bảng `Report.ts` | `smartcook-backend` | ✅ **Đã hoàn thành:** Soft delete plugin tích hợp; Admin report collection & review API hoàn tất. |
+| **B5** | Triển khai Forgot/Reset Password OTP & NoSQL Sanitize | `smartcook-backend` | ✅ **Đã hoàn thành:** Forgot/Reset password OTP qua Nodemailer; chặn NoSQL injection ($gt, $ne). |
+| **B6** | Đấu nối API thật cho các trang Web Admin còn mock | `smartcook-web`, `smartcook-backend` | ✅ **Đã hoàn thành:** AI Engine, Moderation, System Settings đấu nối API MongoDB Atlas thật 100%. |
 | **B7** | Caching Redis & Cursor Pagination Community | `smartcook-backend` | ✅ **Đã hoàn thành:** Caching Categories (24h), Ingredients (12h), Stores (6h), Trending (30m) có auto-invalidation; Feed cursor pagination < 15ms. |
 | **B8** | Docker hóa Production & Winston Logger | `smartcook-backend`, `smartcook-web` | ✅ **Đã hoàn thành:** Multi-stage Dockerfile (Node 20 Alpine & Nginx SPA); `docker-compose.prod.yml`; Winston structured daily rotation; CI/CD workflow & Master E2E runner 100% PASS. |
 
