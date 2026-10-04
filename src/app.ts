@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env";
 import swaggerSpec from "./config/swagger";
 import { apiLimiter } from "./middlewares/rateLimit";
+import { mongoSanitize, hppProtection } from "./middlewares/security";
 import apiRoutes from "./routes";
 import errorHandler from "./middlewares/errorHandler";
 
@@ -33,6 +34,10 @@ app.use(
 // Body Parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// NoSQL Injection Sanitization & HTTP Parameter Pollution (HPP) Protection
+app.use(mongoSanitize);
+app.use(hppProtection());
 
 // Swagger UI Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
