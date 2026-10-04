@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { uploadToCloudinary } from "../config/cloudinary";
+import { uploadToCloudinary, deleteFromCloudinary, extractCloudinaryPublicId } from "../config/cloudinary";
 import Comment, { IComment } from "../models/Comment";
 import Post, { IPost, IPostImage, ReactionType } from "../models/Post";
 import User from "../models/User";
@@ -266,7 +266,19 @@ export class CommunityService {
       throw new ForbiddenError("Bạn không có quyền xoá bài viết này");
     }
 
-    return await communityRepository.deletePost(postId);
+    // Asynchronously trigger Cloudinary media cleanup for attached images
+    if (post.images && post.images.length > 0) {
+      for (const img of post.images) {
+        const publicId = img.publicId || extractCloudinaryPublicId(img.url);
+        if (publicId) {
+          deleteFromCloudinary(publicId).catch((err) =>
+            console.warn(`[Cloudinary] Failed to delete image ${publicId}:`, err)
+          );
+        }
+      }
+    }
+
+    return await communityRepository.deletePost(postId, userId);
   }
 
   /**

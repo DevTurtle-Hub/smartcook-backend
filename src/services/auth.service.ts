@@ -3,6 +3,7 @@ import { userRepository } from "../repositories/user.repository";
 import { IUser, IUserPreferences } from "../models/User";
 import { JwtHelper, AuthTokens } from "../utils/jwt";
 import { env } from "../config/env";
+import { deleteFromCloudinary, extractCloudinaryPublicId } from "../config/cloudinary";
 import {
   ConflictError,
   UnauthorizedError,
@@ -262,6 +263,21 @@ export class AuthService {
     userId: string,
     data: { firstName?: string; lastName?: string; avatar?: string }
   ): Promise<any> {
+    const existingUser = await userRepository.findById(userId);
+    if (!existingUser) {
+      throw new NotFoundError("User not found");
+    }
+
+    // If new avatar is provided and different from old avatar, clean up old Cloudinary avatar
+    if (data.avatar && existingUser.avatar && data.avatar !== existingUser.avatar) {
+      const oldPublicId = extractCloudinaryPublicId(existingUser.avatar);
+      if (oldPublicId) {
+        deleteFromCloudinary(oldPublicId).catch((err) =>
+          console.warn(`[Cloudinary] Failed to delete old avatar ${oldPublicId}:`, err)
+        );
+      }
+    }
+
     const updatedUser = await userRepository.update(userId, data);
     if (!updatedUser) {
       throw new NotFoundError("User not found");
