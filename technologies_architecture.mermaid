@@ -1,0 +1,93 @@
+%% SmartCook Ecosystem - Complete Technology Stack Architecture
+%% Visualizing technologies across Mobile, Web, Backend, Database, Cloud & DevOps
+
+flowchart TB
+    %% ========================================================
+    %% CLIENT LAYER
+    %% ========================================================
+    subgraph CLIENT_LAYER["📱 1. CLIENT APPLICATIONS LAYER"]
+        direction TB
+
+        subgraph MOBILE_TECH["📲 SmartCook Mobile (iOS & Android)"]
+            M_CORE["<b>Core & Framework</b><br/>• React Native 0.86<br/>• React 19 & TypeScript<br/>• Expo SDK 57 (Expo Router)"]
+            M_UI["<b>UI & Animation</b><br/>• React Native Reanimated 4<br/>• React Native Gesture Handler<br/>• Expo Linear Gradient & Glass Effect<br/>• Expo Image & Vector Icons"]
+            M_HARDWARE["<b>Native Hardware APIs</b><br/>• Expo Secure Store (Keystore/Keychain)<br/>• Expo Location (GPS Nearby Stores)<br/>• Expo Speech (Voice Cooking Assistant)<br/>• Expo Image Picker & Haptics"]
+            M_NET["<b>Client Networking</b><br/>• Axios Client (Auth Interceptor)<br/>• Socket.IO Client (Realtime Chat)"]
+        end
+
+        subgraph WEB_TECH["💻 SmartCook Web (User & Admin Portal)"]
+            W_CORE["<b>Core & Framework</b><br/>• React 19 & TypeScript<br/>• Vite 8 Build Tool (ESBuild)"]
+            W_UI["<b>Design & UI Components</b><br/>• TailwindCSS v4<br/>• Lucide React Icons<br/>• Glassmorphic Dashboard UI"]
+            W_STATE["<b>State & Data Management</b><br/>• Zustand (Atomic Auth Store)<br/>• TanStack Query v5 (React Query)"]
+            W_NET["<b>Web Networking & Server</b><br/>• Axios (Atomic Token Rotation)<br/>• Socket.IO Client<br/>• Nginx 1.27 Alpine (SPA Server)"]
+        end
+    end
+
+    %% ========================================================
+    %% BACKEND SERVICES LAYER
+    %% ========================================================
+    subgraph BACKEND_LAYER["⚙️ 2. BACKEND API & REALTIME SERVICE LAYER"]
+        direction TB
+
+        subgraph BACKEND_CORE["🚀 SmartCook Backend Core"]
+            B_RUNTIME["<b>Runtime & Framework</b><br/>• Node.js 20 LTS Alpine<br/>• Express.js 5.x<br/>• TypeScript 7.x (Strict Mode)"]
+            B_REALTIME["<b>Realtime Gateway</b><br/>• Socket.IO 4.8<br/>• Chat Direct & Group Rooms<br/>• Membership Access Guard"]
+            B_SECURITY["<b>Security & Hardening</b><br/>• JWT (Access & Refresh Rotation)<br/>• Bcrypt.js (12 Salt Rounds)<br/>• Helmet (HTTP Security Headers)<br/>• Express Rate Limit (Brute-Force Guard)<br/>• Express Mongo Sanitize (NoSQL Guard)<br/>• HPP (Parameter Pollution Guard)"]
+            B_VALID_DOCS["<b>Validation & Documentation</b><br/>• Joi Schema Validation<br/>• Swagger UI & OpenAPI 3.0"]
+            B_LOGGING["<b>Observability & Logging</b><br/>• Winston Structured JSON Logger<br/>• Winston Daily Rotate File (.gz)<br/>• Morgan HTTP Access Stream"]
+        end
+    end
+
+    %% ========================================================
+    %% CLOUD & AI INTEGRATIONS LAYER
+    %% ========================================================
+    subgraph CLOUD_LAYER["☁️ 3. CLOUD SERVICES & AI INTEGRATIONS"]
+        direction TB
+
+        AI_GEMINI["🧠 <b>Google Gemini AI</b><br/>• Model: Gemini 2.5 Flash<br/>• SDK: @google/genai<br/>• Vision Fridge Scanner & Recipe Gen"]
+        CDN_CLOUDINARY["🖼️ <b>Cloudinary CDN</b><br/>• Image Upload & Optimization<br/>• Automated Orphan Asset Cleanup"]
+        EMAIL_SMTP["📧 <b>Nodemailer (SMTP)</b><br/>• HTML Responsive Email Templates<br/>• 6-digit OTP Forgot/Reset Password"]
+        AUTH_GOOGLE["🔑 <b>Google OAuth 2.0</b><br/>• google-auth-library<br/>• One-tap Social Authentication"]
+    end
+
+    %% ========================================================
+    %% DATA & CACHING LAYER
+    %% ========================================================
+    subgraph DATA_LAYER["🗄️ 4. DATA STORAGE & HIGH-SPEED CACHING"]
+        direction TB
+
+        subgraph CACHE_TECH["⚡ In-Memory Caching"]
+            REDIS["<b>Redis 7.0 Alpine</b><br/>• ioredis Driver<br/>• Multi-tier TTL (24h/12h/6h/30m)<br/>• Pattern Auto-Invalidation<br/>• Fallback: High-Speed In-Memory Cache"]
+        end
+
+        subgraph DB_TECH["🍃 Primary Database"]
+            MONGO["<b>MongoDB Atlas 7.0</b><br/>• ODM: Mongoose 9.x<br/>• Full-Text Search Indexes (Weights)<br/>• Mongoose Soft Delete Plugin<br/>• TTL Indexes (Automatic OTP Expiry)<br/>• Cursor-based Pagination (_id lt cursor)"]
+        end
+    end
+
+    %% ========================================================
+    %% DEVOPS & CI/CD LAYER
+    %% ========================================================
+    subgraph DEVOPS_LAYER["🚢 5. DEVOPS, CONTAINERIZATION & CI/CD"]
+        direction TB
+
+        DOCKER["🐳 <b>Docker & Compose</b><br/>• Multi-Stage Dockerfile (Node 20 Alpine)<br/>• Production Nginx 1.27 Alpine SPA<br/>• docker-compose.prod.yml (App + Web + Redis + Mongo)"]
+        GITHUB_ACTIONS["🤖 <b>GitHub Actions CI/CD</b><br/>• Automated Lint (tsc --noEmit)<br/>• Production TypeScript Build<br/>• Docker Build Verification Pipeline"]
+        TEST_RUNNER["🧪 <b>Automated Test Suite</b><br/>• Master E2E Runner (npm run test:e2e:all)<br/>• Security, DB, Auth, Cache, Admin suites"]
+    end
+
+    %% Connections
+    M_NET -->|REST HTTPS / WSS| B_RUNTIME
+    W_NET -->|REST HTTPS / WSS| B_RUNTIME
+    B_RUNTIME <-->|Realtime Events| B_REALTIME
+
+    B_RUNTIME -->|Vision Prompt & Analysis| AI_GEMINI
+    B_RUNTIME -->|Image Upload & Delete| CDN_CLOUDINARY
+    B_RUNTIME -->|OTP Email Delivery| EMAIL_SMTP
+    B_RUNTIME -->|Token Verify| AUTH_GOOGLE
+
+    B_RUNTIME <-->|Get / Set / Invalidate Cache| REDIS
+    B_RUNTIME <-->|CRUD, Text Search & Aggregations| MONGO
+
+    DEVOPS_LAYER -.->|Build & Deploy| CLIENT_LAYER
+    DEVOPS_LAYER -.->|Orchestrate & Monitor| BACKEND_LAYER
