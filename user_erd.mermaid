@@ -1,0 +1,135 @@
+%% SmartCook Backend - User Actor Domain ERD
+%% USER_ACTOR is conceptual. Persistent identity is stored in USER.
+
+erDiagram
+    USER_ACTOR {
+        string actor "authenticated user"
+    }
+
+    USER {
+        ObjectId _id PK
+        string email UK
+        string role "user"
+        object preferences "embedded"
+        number chefExp
+        string level
+        ObjectId favoriteRecipeIds FK "array"
+        object claimedRewards "embedded"
+        object checkIn "embedded"
+    }
+
+    USER_FRIDGE {
+        ObjectId _id PK
+        ObjectId userId FK, UK
+        object items "embedded array"
+    }
+
+    RECIPE {
+        ObjectId _id PK
+        ObjectId authorId FK
+        string title
+        string categoryCode
+        object ingredients "embedded"
+        object steps "embedded"
+    }
+
+    COOKING_HISTORY {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId recipeId FK
+        number rating
+        number xpEarned
+    }
+
+    SCAN_HISTORY {
+        ObjectId _id PK
+        ObjectId userId FK
+        object ingredients "embedded"
+        object suggestedRecipe "embedded"
+        datetime scannedAt
+    }
+
+    MEAL_PLAN {
+        ObjectId _id PK
+        ObjectId userId FK
+        datetime weekStartDate
+        object days "embedded"
+    }
+
+    CART_ITEM {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId recipeId FK "optional"
+        string name
+        boolean bought
+        boolean syncedToFridge
+    }
+
+    POST {
+        ObjectId _id PK
+        ObjectId author FK
+        ObjectId recipeId FK "optional"
+        string caption
+        map reactions
+        string status
+    }
+
+    COMMENT {
+        ObjectId _id PK
+        ObjectId postId FK
+        ObjectId author FK
+        ObjectId parentCommentId FK
+        string content
+    }
+
+    CONVERSATION {
+        ObjectId _id PK
+        string type
+        ObjectId participants FK "array"
+        object members "embedded"
+    }
+
+    MESSAGE {
+        ObjectId _id PK
+        ObjectId conversationId FK
+        ObjectId sender FK
+        ObjectId readBy FK "array"
+        string text
+    }
+
+    REPORT {
+        ObjectId _id PK
+        ObjectId reporterId FK
+        string targetType
+        ObjectId targetId FK
+        string status
+    }
+
+    NOTIFICATION {
+        ObjectId _id PK
+        ObjectId userId FK
+        string type
+        boolean isRead
+    }
+
+    USER_ACTOR ||--|| USER : authenticates_as
+    USER ||--|| USER_FRIDGE : owns
+    USER ||--o{ RECIPE : authors
+    USER }o--o{ RECIPE : favorites
+    USER ||--o{ COOKING_HISTORY : records
+    RECIPE ||--o{ COOKING_HISTORY : cooked_as
+    USER ||--o{ SCAN_HISTORY : creates
+    USER ||--o{ MEAL_PLAN : plans
+    USER ||--o{ CART_ITEM : shops
+    RECIPE o|--o{ CART_ITEM : source
+    USER ||--o{ POST : publishes
+    RECIPE o|--o{ POST : shares
+    POST ||--o{ COMMENT : receives
+    USER ||--o{ COMMENT : writes
+    COMMENT o|--o{ COMMENT : replies_to
+    USER }o--o{ CONVERSATION : participates
+    CONVERSATION ||--o{ MESSAGE : contains
+    USER ||--o{ MESSAGE : sends
+    USER }o--o{ MESSAGE : reads
+    USER ||--o{ REPORT : submits
+    USER ||--o{ NOTIFICATION : receives
