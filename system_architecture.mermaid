@@ -1,0 +1,125 @@
+%% SmartCook Ecosystem - High-Level System Architecture
+%% Comprehensive End-to-End Enterprise System Architecture
+
+flowchart TB
+    %% ========================================================
+    %% 1. CLIENT TIER (TẦNG THIẾT BỊ ĐẦU CUỐI & NGƯỜI DÙNG)
+    %% ========================================================
+    subgraph CLIENT_TIER["📱 1. PRESENTATION & CLIENT TIER"]
+        direction LR
+
+        subgraph MOBILE_CLIENT["📲 SmartCook Mobile (iOS & Android)"]
+            M_UI["<b>React Native 0.86 / Expo 57</b><br/>• Mobile App Screens (Fridge, Cooking, AI, Chat)<br/>• Hardware: Camera, GPS Location, Speech TTS<br/>• Secure Store: Hardware Keystore/Keychain"]
+        end
+
+        subgraph WEB_CLIENT["💻 SmartCook Web (Desktop & Tablet)"]
+            W_UI["<b>React 19 / Vite 8 SPA</b><br/>• User Portal: Cooking Discovery, Community Feed<br/>• Admin Portal: AI Engine, Moderation, Settings<br/>• Zustand Auth & TanStack Query v5 Cache"]
+        end
+    end
+
+    %% ========================================================
+    %% 2. NETWORK & SECURITY EDGE TIER (TẦNG MẠNG & BẢO VỆ)
+    %% ========================================================
+    subgraph EDGE_TIER["🛡️ 2. NETWORK, REVERSE PROXY & SECURITY GATEWAY TIER"]
+        direction TB
+
+        NGINX["🌐 <b>Nginx 1.27 Alpine Reverse Proxy</b><br/>• TLS/SSL Termination (HTTPS / WSS)<br/>• Static Asset Serving & SPA Routing (try_files)<br/>• Gzip Compression & Cache-Control Policies"]
+
+        subgraph SECURITY_PIPELINE["🔒 Security & Protection Pipeline"]
+            SEC_MW["<b>Security Middleware Filters</b><br/>• <b>Helmet:</b> HTTP Security Headers (XSS, Clickjacking, MIME)<br/>• <b>CORS Guard:</b> Whitelist Domain Origins<br/>• <b>Rate Limiter:</b> Anti-DDoS & Auth Brute-Force Guard<br/>• <b>Data Sanitizer:</b> express-mongo-sanitize & HPP Protection<br/>• <b>JWT Filter:</b> Access Token (15m) & Refresh Token Rotation (7d)<br/>• <b>RBAC:</b> Role-Based Access Control (User vs Admin)"]
+        end
+    end
+
+    %% ========================================================
+    %% 3. APPLICATION & SERVICE CORE TIER (TẦNG ỨNG DỤNG)
+    %% ========================================================
+    subgraph APP_TIER["🚀 3. APPLICATION SERVICES & PROCESSING TIER (NODE.JS / EXPRESS 5)"]
+        direction TB
+
+        subgraph REST_API_MODULES["📦 RESTful API Business Modules"]
+            direction TB
+            MOD_AUTH["<b>Auth & Account</b><br/>Register, Login, Google OAuth, Nodemailer OTP"]
+            MOD_KITCHEN["<b>Kitchen & Fridge</b><br/>Ingredient Tracking, Expiry Alerts, Barcode"]
+            MOD_RECIPE["<b>Recipe & Cooking</b><br/>Step-by-step Interactive Guide, Ratings, Comments"]
+            MOD_COMMUNITY["<b>Community & Feed</b><br/>Post Feed, Likes, Cursor Pagination, Reports"]
+            MOD_PLANNER["<b>Planner & Stores</b><br/>Weekly Meal Planner, Shopping Cart, GPS Stores"]
+            MOD_ADMIN["<b>Admin Operations</b><br/>System Settings, Moderation, AI Engine Monitor"]
+        end
+
+        subgraph REALTIME_ENGINE["⚡ Realtime Communication Gateway"]
+            SOCKET_IO["<b>Socket.IO 4.8 Gateway</b><br/>• Direct 1-1 Chat & Community Rooms<br/>• Membership Access Validation Guard<br/>• Realtime Typing & Online Presence"]
+        end
+
+        subgraph CORE_FOUNDATION["⚙️ Core Framework Foundation"]
+            CONTROLLER_SVC["<b>Controller - Service - Repository Architecture</b><br/>Clean Architecture, Dependency Inversion, Business Isolation"]
+            LOGGER_ENGINE["<b>Winston Structured JSON Logger</b><br/>Daily File Rotation (.gz), Error / Combined / HTTP Streams"]
+            DOCS_ENGINE["<b>Swagger UI / OpenAPI 3.0</b><br/>Interactive API Specification & Testing Console"]
+        end
+    end
+
+    %% ========================================================
+    %% 4. CLOUD & AI INTEGRATION TIER (TẦNG DỊCH VỤ NGOÀI)
+    %% ========================================================
+    subgraph CLOUD_TIER["☁️ 4. CLOUD & ARTIFICIAL INTELLIGENCE INTEGRATION TIER"]
+        direction TB
+
+        GEMINI_AI["🧠 <b>Google Gemini 2.5 Flash AI</b><br/>• Multi-modal Vision API (AI Fridge Scanner)<br/>• Intelligent Recipe & Meal Generation"]
+
+        CLOUDINARY_CDN["🖼️ <b>Cloudinary Media CDN</b><br/>• High-speed Image Storage & Compression<br/>• Background Orphan Asset Cleanup"]
+
+        SMTP_MAIL["📧 <b>Nodemailer SMTP Gateway</b><br/>• Responsive HTML Email Notifications<br/>• 6-Digit Password Reset OTP Delivery"]
+
+        GOOGLE_AUTH["🔑 <b>Google Identity Platform</b><br/>• Google OAuth 2.0 Token Verification"]
+    end
+
+    %% ========================================================
+    %% 5. DATA STORAGE & HIGH-SPEED CACHING TIER
+    %% ========================================================
+    subgraph DATA_TIER["🗄️ 5. DATA PERSISTENCE & IN-MEMORY CACHING TIER"]
+        direction LR
+
+        subgraph CACHE_LAYER["⚡ High-Speed Caching Layer"]
+            REDIS_CLUSTER["<b>Redis 7.0 Alpine</b><br/>• Multi-Tier TTL (24h/12h/6h/30m)<br/>• Pattern Auto-Invalidation (delByPattern)<br/>• In-Memory Graceful Fallback Engine"]
+        end
+
+        subgraph DB_LAYER["🍃 Primary Database Storage Layer"]
+            MONGO_ATLAS["<b>MongoDB Atlas 7.0 (Mongoose 9.x)</b><br/>• 18 Physical Collections (Users, Recipes, Posts...)<br/>• Mongoose Soft Delete Plugin (isDeleted)<br/>• Multi-field Weighted Text Search Indexes<br/>• TTL Indexes (Automatic OTP Expiration)<br/>• Cursor-based Pagination Indexing (_id &lt; cursor)"]
+        end
+    end
+
+    %% ========================================================
+    %% 6. DEVOPS & INFRASTRUCTURE TIER
+    %% ========================================================
+    subgraph DEVOPS_TIER["🚢 6. DEVOPS, CONTAINERIZATION & CI/CD INFRASTRUCTURE"]
+        direction LR
+        DOCKER_PROD["🐳 <b>Docker Compose Production</b><br/>Multi-Stage Node 20 Alpine + Nginx + Redis + Mongo"]
+        CI_CD["🤖 <b>GitHub Actions CI Pipeline</b><br/>Linting, Typecheck (tsc), Bundle & Docker Verification"]
+    end
+
+    %% ========================================================
+    %% DATA FLOW CONNECTORS
+    %% ========================================================
+    MOBILE_CLIENT -->|HTTPS API Requests| NGINX
+    WEB_CLIENT -->|HTTPS API Requests| NGINX
+    MOBILE_CLIENT <==>|WSS Realtime Socket| NGINX
+    WEB_CLIENT <==>|WSS Realtime Socket| NGINX
+
+    NGINX -->|Route Traffic| SEC_MW
+    SEC_MW -->|Valid & Authorized Request| REST_API_MODULES
+    NGINX <==>|Upgrade WSS Proxy| SOCKET_IO
+
+    REST_API_MODULES <--> CONTROLLER_SVC
+    SOCKET_IO <--> CONTROLLER_SVC
+    CONTROLLER_SVC --> LOGGER_ENGINE
+
+    CONTROLLER_SVC <-->|Vision Prompt & Food Detection| GEMINI_AI
+    CONTROLLER_SVC <-->|Upload / Delete Media Assets| CLOUDINARY_CDN
+    CONTROLLER_SVC -->|Send Password Reset OTP| SMTP_MAIL
+    CONTROLLER_SVC <-->|Verify ID Tokens| GOOGLE_AUTH
+
+    CONTROLLER_SVC <-->|Cache HIT/MISS & Auto-Invalidate| REDIS_CLUSTER
+    SOCKET_IO -.->|Session Storage & Cache| REDIS_CLUSTER
+
+    CONTROLLER_SVC <-->|CRUD, Text Search & Aggregations| MONGO_ATLAS
+
+    DEVOPS_TIER -.->|Orchestrates Containers & Automates Deployments| APP_TIER
