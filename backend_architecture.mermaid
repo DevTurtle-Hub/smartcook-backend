@@ -1,0 +1,106 @@
+%% SmartCook Backend - Overall Runtime Architecture
+
+flowchart TB
+    subgraph Actors[Actors and Clients]
+        Guest[Guest]
+        User[Authenticated User]
+        Admin[Admin - User role admin]
+        Web[SmartCook Web]
+        Mobile[SmartCook Mobile]
+    end
+
+    subgraph Entry[HTTP and Realtime Entry]
+        Express[Express 5 App]
+        Socket[Socket.IO Gateway]
+        Swagger[Swagger UI]
+    end
+
+    subgraph GlobalMiddleware[Global Middleware]
+        Helmet[Helmet]
+        Cors[CORS]
+        Compression[Compression]
+        Logger[Morgan and Winston]
+        BodyParser[JSON and URL Encoded Parser]
+        Sanitize[NoSQL Sanitizer and HPP]
+        RateLimit[API and Auth Rate Limit]
+        ErrorHandler[Global Error Handler]
+    end
+
+    subgraph ApiLayer[API v1 Route Modules]
+        PublicRoutes[Health, Categories, Ingredients, Recipes, Stores]
+        AuthRoutes[Auth and Password Reset]
+        UserRoutes[Fridge, Cooking History, AI, Community, Chat]
+        PlannerRoutes[Planner, Cart, Notifications, Rewards, Reports]
+        AdminRoutes[Dashboard, Users, Reports, Settings, AI Engine]
+    end
+
+    subgraph AccessControl[Validation and Access Control]
+        Joi[Joi Validators]
+        Authenticate[JWT Authenticate]
+        Authorize[Role Authorization]
+        Upload[Multer Image Upload]
+        CacheMiddleware[Cache Middleware]
+    end
+
+    subgraph Application[Application Layers]
+        Controllers[Controllers]
+        Services[Business Services]
+        Repositories[Repositories]
+        Models[Mongoose Models]
+    end
+
+    subgraph Infrastructure[Infrastructure and Providers]
+        Mongo[(MongoDB)]
+        Redis[(Redis with Memory Fallback)]
+        Gemini[Google Gemini]
+        Cloudinary[Cloudinary]
+        GoogleOAuth[Google OAuth]
+        SMTP[SMTP and Nodemailer]
+    end
+
+    Guest --> Web
+    Guest --> Mobile
+    User --> Web
+    User --> Mobile
+    Admin --> Web
+    Web --> Express
+    Mobile --> Express
+    Web <--> Socket
+    Mobile <--> Socket
+
+    Express --> Helmet --> Cors --> Compression --> Logger --> BodyParser --> Sanitize --> RateLimit
+    RateLimit --> PublicRoutes
+    RateLimit --> AuthRoutes
+    RateLimit --> UserRoutes
+    RateLimit --> PlannerRoutes
+    RateLimit --> AdminRoutes
+    Express --> Swagger
+
+    PublicRoutes --> Joi
+    AuthRoutes --> Joi
+    UserRoutes --> Authenticate
+    PlannerRoutes --> Authenticate
+    AdminRoutes --> Authenticate --> Authorize
+    UserRoutes --> Upload
+    PublicRoutes --> CacheMiddleware
+
+    Joi --> Controllers
+    Authenticate --> Controllers
+    Authorize --> Controllers
+    Upload --> Controllers
+    CacheMiddleware --> Controllers
+    Controllers --> Services
+    Services --> Repositories
+    Services --> Models
+    Repositories --> Models
+    Models --> Mongo
+    Services --> Redis
+    Services --> Gemini
+    Services --> Cloudinary
+    Services --> GoogleOAuth
+    Services --> SMTP
+    Socket --> Authenticate
+    Socket --> Services
+    Controllers -. errors .-> ErrorHandler
+    Services -. errors .-> ErrorHandler
+

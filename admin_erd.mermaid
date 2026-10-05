@@ -1,0 +1,98 @@
+%% SmartCook Backend - Admin Actor Domain ERD
+%% ADMIN_ACTOR is conceptual. Admins are USER documents with role = "admin".
+
+erDiagram
+    ADMIN_ACTOR {
+        string actor "authenticated admin"
+    }
+
+    USER {
+        ObjectId _id PK
+        string email UK
+        string role "user admin"
+        boolean isActive
+        boolean isDeleted
+        ObjectId deletedBy FK
+    }
+
+    RECIPE {
+        ObjectId _id PK
+        ObjectId authorId FK
+        string title
+        boolean isActive
+        boolean isDeleted
+        ObjectId deletedBy FK
+    }
+
+    CATEGORY {
+        ObjectId _id PK
+        string code UK
+        string name
+        boolean isActive
+    }
+
+    INGREDIENT {
+        ObjectId _id PK
+        string normalizedName
+        string category
+        boolean isActive
+    }
+
+    POST {
+        ObjectId _id PK
+        ObjectId author FK
+        string status
+        boolean isPinned
+        boolean isDeleted
+        ObjectId deletedBy FK
+    }
+
+    COMMENT {
+        ObjectId _id PK
+        ObjectId postId FK
+        ObjectId author FK
+        boolean isDeleted
+        ObjectId deletedBy FK
+    }
+
+    REPORT {
+        ObjectId _id PK
+        ObjectId reporterId FK
+        string targetType
+        ObjectId targetId FK
+        string status
+        ObjectId resolvedBy FK
+        string resolutionNotes
+        datetime resolvedAt
+    }
+
+    STORE {
+        ObjectId _id PK
+        string name
+        string brand
+        object location "GeoJSON Point"
+        boolean isActive
+    }
+
+    SYSTEM_SETTING {
+        ObjectId _id PK
+        string key UK
+        string appVersion
+        object aiConfig "embedded"
+    }
+
+    ADMIN_ACTOR ||--|| USER : represented_by_role_admin
+    USER o|--o{ REPORT : resolves
+    USER o|--o{ USER : moderates_accounts
+    USER o|--o{ RECIPE : manages
+    USER o|--o{ POST : moderates
+    USER o|--o{ COMMENT : moderates
+    USER o|--o{ CATEGORY : manages
+    USER o|--o{ INGREDIENT : manages
+    USER o|--o{ STORE : manages
+    USER o|--o{ SYSTEM_SETTING : configures
+    POST o|--o{ REPORT : reported_target
+    COMMENT o|--o{ REPORT : reported_target
+    RECIPE o|--o{ REPORT : reported_target
+    USER o|--o{ REPORT : reported_target
+

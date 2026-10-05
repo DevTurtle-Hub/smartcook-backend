@@ -3,6 +3,7 @@ import { authController } from "../controllers/auth.controller";
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/auth";
 import { authLimiter } from "../middlewares/rateLimit";
+import { uploadAvatar } from "../middlewares/upload";
 import {
   registerSchema,
   loginSchema,
@@ -31,7 +32,7 @@ router.post("/reset-password", authLimiter, validate(resetPasswordSchema), authC
 // Protected User Profile & Session Endpoints
 router.post("/logout", authenticate, authController.logout);
 router.get("/me", authenticate, authController.getMe);
-router.put("/profile", authenticate, validate(updateProfileSchema), authController.updateProfile);
+router.put("/profile", authenticate, uploadAvatar, validate(updateProfileSchema), authController.updateProfile);
 router.post("/survey", authenticate, validate(onboardingSurveySchema), authController.updateSurvey);
 
 export default router;

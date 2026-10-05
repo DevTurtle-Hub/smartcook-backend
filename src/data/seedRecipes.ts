@@ -14,7 +14,7 @@ export const INITIAL_RECIPES = [
     badge: "👨‍👩‍👧 Gia đình • 4 phần",
     sub: "Đậm đà • Cả nhà thích",
     tags: ["Bữa trưa", "Bữa tối", "Món Nhật", "Giàu đạm"],
-    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=800&q=80",
     description:
       "Thịt gà áp chảo giòn da sốt teriyaki bóng bẩy, ăn kèm cơm trắng nóng dẻo và rau củ thanh mát. Đầy đủ dưỡng chất cho cả gia đình.",
     ingredients: [
@@ -254,7 +254,7 @@ export const INITIAL_RECIPES = [
     badge: "🇻🇳 Món Việt cơm nhà",
     sub: "Tiết kiệm • Thanh đạm",
     tags: ["Món Việt", "Cơm gia đình", "Tiết kiệm"],
-    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800&q=80",
     description: "Miếng đậu hũ vàng giòn nhồi thịt xay nấm hương thơm lừng, rim đẫm trong sốt cà chua chua ngọt mặn mà đưa cơm.",
     ingredients: [
       { name: "Đậu hũ trắng", amount: "4 miếng" },
@@ -292,6 +292,75 @@ export const INITIAL_RECIPES = [
       fiber: "3g",
       sodium: "680mg",
       advice: "Món ăn kinh điển của ẩm thực gia đình Việt, cân đối dinh dưỡng và tiết kiệm chi phí.",
+    },
+  },
+  {
+    title: "Canh Chua Cá Hồi Miền Tây",
+    author: "@bep.mientay",
+    calories: 360,
+    minutes: 25,
+    servings: "4 phần",
+    servingsCount: 4,
+    difficulty: "Dễ" as const,
+    price: "~85.000đ",
+    rating: 4.9,
+    reviewCount: 1350,
+    categoryCode: "vietnamese",
+    badge: "🍲 Canh thanh mát",
+    sub: "Chua thanh • Giàu Omega-3",
+    tags: ["Món Việt", "Canh ngon", "Cá hồi", "Bữa cơm"],
+    image: "https://images.unsplash.com/photo-1547592180-85f173990554?w=800&q=80",
+    description:
+      "Vị chua thanh mát của me và dứa hòa quyện vị ngọt béo tự nhiên của đầu hoặc lườn cá hồi tươi, thơm lừng rau ngổ, ngò gai chuẩn vị miền Tây.",
+    ingredients: [
+      { name: "Cá", amount: "350g" },
+      { name: "Cà chua", amount: "2 quả" },
+      { name: "Dứa (Thơm)", amount: "1/4 quả" },
+      { name: "Đậu bắp", amount: "5 quả" },
+      { name: "Dọc mùng (Bạc hà)", amount: "1 nhánh" },
+      { name: "Giá đỗ", amount: "100g" },
+      { name: "Me vắt", amount: "30g" },
+      { name: "Ngò gai & rau ngổ", amount: "1 mớ" },
+      { name: "Nước mắm", amount: "2 muỗng canh" },
+    ],
+    steps: [
+      {
+        stepNumber: 1,
+        title: "Sơ chế cá hồi và rau củ",
+        description:
+          "Rửa cá hồi với nước muối loãng pha chút gừng hoặc rượu để khử tanh. Cà chua bổ múi cau, dứa thái lát, đậu bắp cắt xéo.",
+        timerMinutes: 8,
+      },
+      {
+        stepNumber: 2,
+        title: "Nấu nước canh chua me",
+        description:
+          "Lọc me lấy nước cốt cho vào nồi nước sôi. Thêm dứa và cà chua vào nấu sôi để tạo vị chua ngọt tự nhiên.",
+        timerMinutes: 7,
+      },
+      {
+        stepNumber: 3,
+        title: "Cho cá hồi và rau bắp",
+        description:
+          "Cho cá hồi vào đun sôi 5-7 phút cho cá chín tới, cho tiếp đậu bắp, dọc mùng, giá đỗ vào.",
+        timerMinutes: 7,
+      },
+      {
+        stepNumber: 4,
+        title: "Nêm nếm và hoàn thành",
+        description:
+          "Nêm nước mắm ngon, đường, hạt nêm vừa khẩu vị chua thanh. Múc ra tô rắc ngò gai, rau ngổ và vài lát ớt sừng.",
+        timerMinutes: 3,
+      },
+    ],
+    nutrition: {
+      calories: 360,
+      protein: "32g",
+      carbs: "16g",
+      fat: "14g",
+      fiber: "5g",
+      sodium: "620mg",
+      advice: "Món canh giàu Omega-3, vitamin C từ cà chua dứa giúp thanh nhiệt và tốt cho tim mạch.",
     },
   },
 ];

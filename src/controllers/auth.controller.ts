@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { authService } from "../services/auth.service";
 import { ApiResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
+import { uploadToCloudinary } from "../config/cloudinary";
 
 export class AuthController {
   register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -58,9 +59,21 @@ export class AuthController {
 
   updateProfile = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
+      let avatar = req.body.avatar;
+      if (req.file) {
+        const uploadResult = await uploadToCloudinary(
+          req.file.buffer,
+          "smartcook/avatars"
+        );
+        avatar = uploadResult.url;
+      }
       const updatedUser = await authService.updateProfile(
         req.user!._id.toString(),
-        req.body
+        {
+          ...(req.body.firstName !== undefined ? { firstName: req.body.firstName } : {}),
+          ...(req.body.lastName !== undefined ? { lastName: req.body.lastName } : {}),
+          ...(avatar !== undefined ? { avatar } : {}),
+        }
       );
       ApiResponse.success(res, updatedUser, "Profile updated successfully");
     }
