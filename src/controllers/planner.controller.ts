@@ -2,6 +2,16 @@ import { Request, Response } from "express";
 import { plannerService } from "../services/planner.service";
 import { ApiResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
+import { getIO } from "../socket/chat.gateway";
+
+const notifyCartUpdated = (userId: string, action: string, data?: any) => {
+  try {
+    getIO().to(`user_${userId}`).emit("cart_updated", { action, data });
+    console.log(`📡 [Socket.io] Emitted 'cart_updated' (${action}) to user_${userId}`);
+  } catch (err: any) {
+    console.warn("⚠️ [Socket.io] notifyCartUpdated warning:", err.message);
+  }
+};
 
 export class PlannerController {
   /**
@@ -94,6 +104,7 @@ export class PlannerController {
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user!._id.toString();
       const item = await plannerService.addCartItem(userId, req.body);
+      notifyCartUpdated(userId, "add", item);
 
       ApiResponse.created(
         res,
@@ -109,10 +120,12 @@ export class PlannerController {
   updateBoughtStatus = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user!._id.toString();
-      const id = req.params.id as string;
+      const rawId = req.params.id as string;
+      const id = decodeURIComponent(rawId);
       const { bought } = req.body;
 
       const item = await plannerService.updateBoughtStatus(id, userId, bought);
+      notifyCartUpdated(userId, "update_bought", item);
 
       ApiResponse.success(
         res,
@@ -129,9 +142,11 @@ export class PlannerController {
   removeCartItem = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user!._id.toString();
-      const id = req.params.id as string;
+      const rawId = req.params.id as string;
+      const id = decodeURIComponent(rawId);
 
       await plannerService.removeCartItem(id, userId);
+      notifyCartUpdated(userId, "remove", { id });
 
       ApiResponse.success(
         res,
@@ -149,11 +164,30 @@ export class PlannerController {
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user!._id.toString();
       const result = await plannerService.clearBoughtItems(userId);
+      notifyCartUpdated(userId, "clear_bought", result);
 
       ApiResponse.success(
         res,
         result,
         "Dọn dẹp các mục đã mua thành công",
+        200
+      );
+    }
+  );
+
+  /**
+   * DELETE /api/v1/planner/shopping-list/clear-all
+   */
+  clearAllCartItems = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const userId = req.user!._id.toString();
+      const result = await plannerService.clearAllCartItems(userId);
+      notifyCartUpdated(userId, "clear_all", result);
+
+      ApiResponse.success(
+        res,
+        result,
+        "Xóa tất cả nguyên liệu trong giỏ thành công",
         200
       );
     }
@@ -166,6 +200,7 @@ export class PlannerController {
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user!._id.toString();
       const result = await plannerService.syncBoughtToFridge(userId);
+      notifyCartUpdated(userId, "sync_to_fridge", result);
 
       ApiResponse.success(
         res,

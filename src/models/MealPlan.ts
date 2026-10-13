@@ -23,6 +23,7 @@ export interface IMealPlan extends Document {
   userId: mongoose.Types.ObjectId;
   weekStartDate: Date; // Normalized to Monday 00:00:00 UTC
   days: IPlannerDay[];
+  shoppingListInitialized?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,6 +100,10 @@ const MealPlanSchema = new Schema<IMealPlan>(
     days: {
       type: [PlannerDaySchema],
       default: [],
+    },
+    shoppingListInitialized: {
+      type: Boolean,
+      default: false,
     },
   },
   {
