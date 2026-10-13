@@ -16,9 +16,9 @@ const httpServer = http.createServer(app);
 initSocketIO(httpServer);
 
 // Start HTTP Server
-const server = httpServer.listen(env.PORT, () => {
-  logger.info(`[Server] SmartCook Backend running at http://localhost:${env.PORT}`);
-  logger.info(`[Server] Socket.io Gateway initialized at ws://localhost:${env.PORT}`);
+const server = httpServer.listen(env.PORT, "0.0.0.0", () => {
+  logger.info(`[Server] SmartCook Backend running at http://0.0.0.0:${env.PORT}`);
+  logger.info(`[Server] Socket.io Gateway initialized at ws://0.0.0.0:${env.PORT}`);
   logger.info(`[Server] Environment: ${env.NODE_ENV}`);
   logger.info(`[Server] API Docs: http://localhost:${env.PORT}/api-docs`);
   logger.info(`[Server] Health Check: http://localhost:${env.PORT}/api/v1/health`);
