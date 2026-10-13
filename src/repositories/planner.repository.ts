@@ -220,24 +220,42 @@ export class PlannerRepository {
     userId: string,
     bought: boolean
   ): Promise<ICartItem | null> {
+    const filter: any = { userId: new mongoose.Types.ObjectId(userId) };
+    if (mongoose.isValidObjectId(id)) {
+      filter._id = new mongoose.Types.ObjectId(id);
+    } else {
+      const decoded = decodeURIComponent(id).trim();
+      const normalized = normalizeVietnamese(decoded);
+      filter.$or = [
+        { name: decoded },
+        { name: new RegExp(`^${decoded}$`, "i") },
+        { normalizedName: normalized },
+      ];
+    }
     return CartItem.findOneAndUpdate(
-      {
-        _id: new mongoose.Types.ObjectId(id),
-        userId: new mongoose.Types.ObjectId(userId),
-      },
+      filter,
       { bought },
       { returnDocument: "after" }
     );
   }
 
   /**
-   * Delete a cart item
+   * Delete a cart item by ObjectId or by item name
    */
   async removeCartItem(id: string, userId: string): Promise<boolean> {
-    const res = await CartItem.deleteOne({
-      _id: new mongoose.Types.ObjectId(id),
-      userId: new mongoose.Types.ObjectId(userId),
-    });
+    const filter: any = { userId: new mongoose.Types.ObjectId(userId) };
+    if (mongoose.isValidObjectId(id)) {
+      filter._id = new mongoose.Types.ObjectId(id);
+    } else {
+      const decoded = decodeURIComponent(id).trim();
+      const normalized = normalizeVietnamese(decoded);
+      filter.$or = [
+        { name: decoded },
+        { name: new RegExp(`^${decoded}$`, "i") },
+        { normalizedName: normalized },
+      ];
+    }
+    const res = await CartItem.deleteOne(filter);
     return (res.deletedCount || 0) > 0;
   }
 
@@ -248,6 +266,16 @@ export class PlannerRepository {
     const res = await CartItem.deleteMany({
       userId: new mongoose.Types.ObjectId(userId),
       bought: true,
+    });
+    return res.deletedCount || 0;
+  }
+
+  /**
+   * Clear all cart items for a user (unconditionally)
+   */
+  async clearAllCartItems(userId: string): Promise<number> {
+    const res = await CartItem.deleteMany({
+      userId: new mongoose.Types.ObjectId(userId),
     });
     return res.deletedCount || 0;
   }

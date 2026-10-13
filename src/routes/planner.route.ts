@@ -31,6 +31,7 @@ router.patch(
   plannerController.updateBoughtStatus
 );
 router.delete("/shopping-list/clear-bought", plannerController.clearBoughtItems);
+router.delete("/shopping-list/clear-all", plannerController.clearAllCartItems);
 router.delete("/shopping-list/:id", plannerController.removeCartItem);
 
 // ================= SYNC BOUGHT TO FRIDGE =================
