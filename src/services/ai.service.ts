@@ -1,3 +1,6 @@
+import { foodVisionService } from "./food-vision.service";
+import { Types } from "mongoose";
+import { cookingCopilotService } from "./cooking-copilot.service";
 import { geminiClient, GEMINI_MODEL, GEMINI_CANDIDATE_MODELS } from "../config/gemini";
 import Recipe, { IRecipe } from "../models/Recipe";
 import { IScanHistory, IScanDetectedIngredient, IScanPin, IScanSuggestedRecipe } from "../models/ScanHistory";
@@ -12,6 +15,7 @@ export interface ScanIngredientResult {
   imageUrl: string;
   image: string; // Mobile compatibility
   accuracy: number;
+  dishes?: { name: string; confidence: string }[];
   ingredients: IScanDetectedIngredient[];
   pins: IScanPin[];
   suggestedRecipe: IScanSuggestedRecipe;
@@ -27,6 +31,56 @@ export interface AssistantChatResponse {
   replyText: string;
   suggestedDishes: string[];
   quickPrompts: string[];
+}
+
+export interface CookingCopilotStep {
+  stepNumber: number;
+  title: string;
+  description: string;
+}
+
+export interface CookingCopilotTimer {
+  targetMinutes?: number;
+  elapsedSeconds?: number;
+  remainingSeconds?: number;
+  isRunning?: boolean;
+  isOverdue?: boolean;
+  overdueSeconds?: number;
+}
+
+export interface CookingCopilotRequest {
+  recipeTitle: string;
+  currentStep: CookingCopilotStep;
+  stepTimer?: CookingCopilotTimer;
+  recipeContext?: {
+    ingredients: { name: string; amount: string }[];
+    steps: { stepNumber: number; title: string; description: string; timerMinutes?: number }[];
+    servings?: string;
+    nutrition?: import("../utils/cookingScope").CookingNutrition;
+  };
+  userVoiceText: string;
+  conversationHistory?: { role: "user" | "assistant"; text: string }[];
+}
+
+export type CookingActionType =
+  | "REDUCE_TIMER"
+  | "EXTEND_TIMER"
+  | "GO_TO_STEP"
+  | "NEXT_STEP"
+  | "PREV_STEP"
+  | "REPEAT_STEP"
+  | "TROUBLESHOOT"
+  | "NONE";
+
+export interface CookingCopilotResponse {
+  speechReply: string;
+  action: CookingActionType;
+  actionPayload?: {
+    extendSeconds?: number;
+    reduceSeconds?: number;
+    targetStep?: number;
+  };
+  suggestedQuickReplies?: string[];
 }
 
 export class AIService {
@@ -74,199 +128,18 @@ export class AIService {
     imageUrl: string,
     imagePublicId?: string
   ): Promise<ScanIngredientResult> {
-    try {
-      const base64Data = imageBuffer.toString("base64");
-
-      const prompt = `Bạn là hệ thống AI thị giác máy tính nhận diện thực phẩm chuyên sâu của SmartCook.
-Hãy phân tích bức ảnh này và trả về JSON thuần (không có markdown \`\`\`json) theo đúng cấu trúc sau:
-{
-  "title": "Tên ngắn gọn mô tả lần quét (ví dụ: 'Ngăn mát tủ lạnh sáng nay', 'Thực phẩm chuẩn bị trưa nay', 'Bàn bếp đi chợ chiều')",
-  "accuracy": 96,
-  "ingredients": [
-    {
-      "name": "Tên nguyên liệu tiếng Việt chuẩn (ví dụ: 'Thịt ức gà', 'Cà chua bi', 'Quả bơ sáp', 'Cá hồi phi lê')",
-      "confidence": "98%",
-      "icon": "chọn 1 trong: food-drumstick, fruit-cherries, food-apple, fish, leaf, food-steak, seed, shaker, bottle-tonic, fruit-citrus, egg"
-    }
-  ],
-  "pins": [
-    {
-      "text": "Tên nguyên liệu kèm emoji và % (ví dụ: '🍗 Ức gà (98%)', '🍅 Cà chua (96%)')",
-      "top": 30,
-      "left": 25
-    }
-  ],
-  "suggestedRecipe": {
-    "title": "Tên món ăn sáng tạo tối ưu từ các nguyên liệu tìm thấy",
-    "desc": "Mô tả 1-2 câu hấp dẫn về hương vị, dinh dưỡng và độ tiện lợi",
-    "calories": 420,
-    "durationMinutes": 20,
-    "matchPercent": 95
-  }
-}
-Lưu ý:
-- accuracy là số nguyên từ 88 đến 99.
-- pins: chứa từ 2 đến 4 ghim toạ độ phần trăm trên ảnh (top/bottom, left/right từ 15 đến 85) để hiển thị nhãn đè lên ảnh.
-- suggestedRecipe phải thật thiết thực, dễ nấu.`;
-
-      let responseText = "{}";
-      let lastScanErr: any = null;
-
-      for (const candidateModel of GEMINI_CANDIDATE_MODELS) {
-        try {
-          const response = await geminiClient.models.generateContent({
-            model: candidateModel,
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    inlineData: {
-                      mimeType: mimeType || "image/jpeg",
-                      data: base64Data,
-                    },
-                  },
-                  { text: prompt },
-                ],
-              },
-            ],
-            config: {
-              responseMimeType: "application/json",
-              temperature: 0.3,
-            },
-          });
-          if (response.text) {
-            responseText = response.text;
-            break;
-          }
-        } catch (err: any) {
-          lastScanErr = err;
-          console.warn(`⚠️ [AIService] Scan with ${candidateModel} failed, trying next candidate...`);
-        }
-      }
-
-      if (responseText === "{}" && lastScanErr) {
-        throw lastScanErr;
-      }
-
-      let cleaned = responseText.trim();
-      if (cleaned.startsWith("```json")) {
-        cleaned = cleaned.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-      } else if (cleaned.startsWith("```")) {
-        cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
-      }
-      const parsed = JSON.parse(cleaned);
-
-      // Match suggested recipe with database if any exists
-      let matchedRecipeId: string | undefined;
-      if (parsed.suggestedRecipe?.title) {
-        const normalizedSearch = normalizeVietnamese(parsed.suggestedRecipe.title);
-        const matched = await Recipe.findOne({
-          $or: [
-            { normalizedTitle: { $regex: normalizedSearch.slice(0, 15), $options: "i" } },
-            { isActive: true },
-          ],
-        }).exec();
-        if (matched) {
-          matchedRecipeId = matched._id.toString();
-        }
-      }
-
-      const scanDoc = await scanHistoryRepository.create({
-        userId: userId as any,
-        title: parsed.title || "Quét thực phẩm thông minh",
-        imageUrl,
-        imagePublicId,
-        accuracy: typeof parsed.accuracy === "number" ? parsed.accuracy : 96,
-        ingredients: Array.isArray(parsed.ingredients) && parsed.ingredients.length > 0 ? parsed.ingredients : [
-          { name: "Thịt ức gà", confidence: "98%", icon: "food-drumstick" },
-          { name: "Cà chua bi", confidence: "96%", icon: "fruit-cherries" },
-          { name: "Quả bơ sáp", confidence: "94%", icon: "food-apple" },
-        ],
-        pins: Array.isArray(parsed.pins) && parsed.pins.length > 0 ? parsed.pins : [
-          { text: "🍗 Ức gà (98%)", top: 30, left: 30 },
-          { text: "🍅 Cà chua (96%)", top: 75, right: 35 },
-          { text: "🥑 Quả bơ (94%)", bottom: 40, left: 50 },
-        ],
-        suggestedRecipe: {
-          id: matchedRecipeId || "dish-suggested",
-          title: parsed.suggestedRecipe?.title || "Salad Ức Gà Bơ Sáp Healthy",
-          desc: parsed.suggestedRecipe?.desc || "Công thức sáng tạo tối ưu từ nguyên liệu vừa quét được.",
-          calories: parsed.suggestedRecipe?.calories || 380,
-          durationMinutes: parsed.suggestedRecipe?.durationMinutes || 20,
-          matchPercent: parsed.suggestedRecipe?.matchPercent || 95,
-        },
-        scannedAt: new Date(),
-      });
-
-      return {
-        id: scanDoc._id.toString(),
-        title: scanDoc.title,
-        imageUrl: scanDoc.imageUrl,
-        image: scanDoc.imageUrl,
-        accuracy: scanDoc.accuracy,
-        ingredients: scanDoc.ingredients,
-        pins: scanDoc.pins,
-        suggestedRecipe: scanDoc.suggestedRecipe,
-        scannedAt: this.formatScannedAt(scanDoc.scannedAt),
-      };
-    } catch (err: any) {
-      console.warn("⚠️ [AIService] Gemini Vision scan failed, executing smart fallback:", err?.message || err);
-      return await this.createSmartScanFallback(userId, imageUrl, imagePublicId);
-    }
-  }
-
-  /**
-   * Smart Fallback for image scan when Gemini is unavailable or rate-limited
-   */
-  private async createSmartScanFallback(
-    userId: string,
-    imageUrl: string,
-    imagePublicId?: string
-  ): Promise<ScanIngredientResult> {
-    // Try to pick a real recipe from DB for realistic fallback
-    const sampleRecipe = await Recipe.findOne({ isActive: true }).exec();
-
+    const parsed = await foodVisionService.analyze(imageBuffer, mimeType);
+    const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matched = await Recipe.findOne({ isActive: true, title: { $regex: `^${escapeRegex(parsed.suggestedRecipe.title)}$`, $options: "i" } }).exec();
     const scanDoc = await scanHistoryRepository.create({
-      userId: userId as any,
-      title: "Ngăn thực phẩm tươi mới",
-      imageUrl,
-      imagePublicId,
-      accuracy: 96,
-      ingredients: [
-        { name: "Thịt ức gà", confidence: "98%", icon: "food-drumstick" },
-        { name: "Cà chua bi", confidence: "96%", icon: "fruit-cherries" },
-        { name: "Quả bơ sáp", confidence: "94%", icon: "food-apple" },
-        { name: "Hành tây & Tỏi", confidence: "91%", icon: "seed" },
-      ],
-      pins: [
-        { text: "🍗 Ức gà (98%)", top: 30, left: 30 },
-        { text: "🍅 Cà chua (96%)", top: 75, right: 35 },
-        { text: "🥑 Quả bơ (94%)", bottom: 40, left: 50 },
-      ],
-      suggestedRecipe: {
-        id: sampleRecipe ? sampleRecipe._id.toString() : "dish-fallback",
-        title: sampleRecipe?.title || "Salad Ức Gà Bơ Sáp Sốt Chanh Leo",
-        desc:
-          sampleRecipe?.description ||
-          "Công thức sáng tạo tối ưu từ 100% nguyên liệu vừa quét được. Không cần đi chợ thêm!",
-        calories: sampleRecipe?.calories || 380,
-        durationMinutes: sampleRecipe?.minutes || 20,
-        matchPercent: 96,
-      },
-      scannedAt: new Date(),
+      userId: new Types.ObjectId(userId), title: parsed.title, imageUrl, imagePublicId,
+      accuracy: parsed.accuracy, dishes: parsed.dishes, ingredients: parsed.ingredients, pins: parsed.pins,
+      suggestedRecipe: { ...parsed.suggestedRecipe, id: matched?._id.toString() }, scannedAt: new Date(),
     });
-
     return {
-      id: scanDoc._id.toString(),
-      title: scanDoc.title,
-      imageUrl: scanDoc.imageUrl,
-      image: scanDoc.imageUrl,
-      accuracy: scanDoc.accuracy,
-      ingredients: scanDoc.ingredients,
-      pins: scanDoc.pins,
-      suggestedRecipe: scanDoc.suggestedRecipe,
-      scannedAt: this.formatScannedAt(scanDoc.scannedAt),
+      id: scanDoc._id.toString(), title: scanDoc.title, imageUrl: scanDoc.imageUrl, image: scanDoc.imageUrl,
+      accuracy: scanDoc.accuracy, dishes: scanDoc.dishes, ingredients: scanDoc.ingredients, pins: scanDoc.pins,
+      suggestedRecipe: scanDoc.suggestedRecipe, scannedAt: this.formatScannedAt(scanDoc.scannedAt),
     };
   }
 
@@ -281,6 +154,7 @@ Lưu ý:
       imageUrl: item.imageUrl,
       image: item.imageUrl,
       accuracy: item.accuracy,
+      dishes: item.dishes,
       ingredients: item.ingredients,
       pins: item.pins,
       suggestedRecipe: item.suggestedRecipe,
@@ -522,6 +396,17 @@ YÊU CẦU:
       suggestedDishes: ["Cơm Gà Teriyaki Áp Chảo", "Bò Bít Tết Sốt Tiêu", "Salad Cá Hồi Bơ Sáp"],
       quickPrompts: ["Hôm nay ăn gì nhanh gọn?", "Món thanh đạm ít dầu", "Cách ướp thịt bò mềm"],
     };
+  }
+
+  /**
+   * Real-time Cooking Voice Copilot
+   * Provides concise, spoken feedback and executes kitchen actions (timers, step changes)
+   */
+  async cookingVoiceCopilot(
+    userId: string,
+    payload: CookingCopilotRequest
+  ): Promise<CookingCopilotResponse> {
+    return cookingCopilotService.reply(userId, payload);
   }
 }
 

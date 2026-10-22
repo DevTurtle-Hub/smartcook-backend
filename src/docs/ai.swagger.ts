@@ -18,6 +18,10 @@
  *         confidence:
  *           type: string
  *           example: "98%"
+ *         source:
+ *           type: string
+ *           enum: [visible, inferred]
+ *           description: Nhìn thấy trong ảnh hoặc suy đoán từ món đã nấu
  *         icon:
  *           type: string
  *           example: "food-drumstick"
@@ -81,6 +85,13 @@
  *         scannedAt:
  *           type: string
  *           example: "Hôm nay, 12:30"
+ *         dishes:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               confidence: { type: string }
  *         ingredients:
  *           type: array
  *           items:
@@ -153,9 +164,9 @@
  *               imageBase64:
  *                 type: string
  *                 description: Base64 data string of the image
- *               imageUrl:
+ *               mimeType:
  *                 type: string
- *                 description: Direct URL of the image to scan
+ *                 enum: [image/jpeg, image/png, image/webp, image/gif]
  *     responses:
  *       201:
  *         description: Scan and analysis successful
@@ -173,7 +184,15 @@
  *                 data:
  *                   $ref: '#/components/schemas/ScanHistoryItem'
  *       400:
- *         description: Missing image
+ *         description: Missing image, invalid MIME type or file contents
+ *       413:
+ *         description: Image exceeds 5 MB
+ *       422:
+ *         description: No food recognized or photo too unclear
+ *       502:
+ *         description: AI result has an invalid shape
+ *       503:
+ *         description: Image storage or AI service temporarily unavailable
  *       401:
  *         description: Unauthorized
  */
