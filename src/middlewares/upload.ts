@@ -1,5 +1,6 @@
 import multer from "multer";
-import { BadRequestError } from "../utils/errors";
+import { AppError, BadRequestError } from "../utils/errors";
+import type { RequestHandler } from "express";
 
 // Use memory storage to process buffers and stream to Cloudinary
 const storage = multer.memoryStorage();
@@ -29,13 +30,23 @@ const fileFilter = (
   }
 };
 
-export const uploadSingleImage = multer({
+const singleImageUpload = multer({
   storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter,
 }).single("image");
+
+export const uploadSingleImage: RequestHandler = (req, res, next) => {
+  singleImageUpload(req, res, (error: unknown) => {
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+      next(new AppError("Ảnh vượt quá 5 MB. Vui lòng chọn ảnh nhỏ hơn.", 413));
+      return;
+    }
+    next(error);
+  });
+};
 
 export const uploadMultipleImages = multer({
   storage,
