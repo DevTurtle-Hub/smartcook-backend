@@ -13,7 +13,7 @@ const onlineUsers = new Map<string, Set<string>>();
 export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
   const allowedOrigins =
     env.CORS_ORIGIN === "*"
-      ? "*"
+      ? true
       : env.CORS_ORIGIN.split(",").map((s) => s.trim());
 
   io = new SocketIOServer(httpServer, {

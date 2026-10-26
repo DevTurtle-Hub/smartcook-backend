@@ -17,7 +17,7 @@ export const connectDB = async (): Promise<void> => {
     });
 
     const conn = await mongoose.connect(env.MONGODB_URI, {
-      autoIndex: env.NODE_ENV !== "production", // Tự động build index ở dev, tắt ở prod để tối ưu hiệu năng
+      autoIndex: true, // Đảm bảo tự động xây dựng các chỉ mục (text index, unique) trên MongoDB Atlas
       serverSelectionTimeoutMS: 10000,
     });
 
@@ -26,6 +26,11 @@ export const connectDB = async (): Promise<void> => {
     );
   } catch (error) {
     console.error("[MongoDB] Failed to connect on startup:", error);
+    if (env.NODE_ENV === "production" && (env.MONGODB_URI.includes("127.0.0.1") || env.MONGODB_URI.includes("localhost"))) {
+      console.error(
+        "🚨 [MongoDB] Bạn đang chạy chế độ Production nhưng MONGODB_URI vẫn trỏ về localhost! Vui lòng cấu hình connection string MongoDB Atlas trong biến môi trường Render."
+      );
+    }
     process.exit(1);
   }
 };
