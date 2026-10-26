@@ -15,8 +15,15 @@ import { logger, morganStream } from "./config/logger";
 
 const app: Application = express();
 
-// Security HTTP Headers
-app.use(helmet());
+// Trust reverse proxy (Render, AWS, Heroku, Cloudflare) for accurate client IP & rate limiting
+app.set("trust proxy", 1);
+
+// Security HTTP Headers (disable CSP so Swagger UI can render assets properly)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
 
 // Gzip compression
 app.use(compression());

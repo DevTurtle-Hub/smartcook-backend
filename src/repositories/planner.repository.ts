@@ -49,22 +49,21 @@ export class PlannerRepository {
    */
   async getOrCreatePlan(userId: string, weekDate?: Date | string): Promise<IMealPlan> {
     const monday = this.normalizeToMonday(weekDate);
-    let plan = await MealPlan.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      weekStartDate: monday,
-    }).populate("days.meals.recipeId");
-
-    if (!plan) {
-      const defaultDays = this.buildDefaultDays(monday);
-      plan = await MealPlan.create({
-        userId: new mongoose.Types.ObjectId(userId),
-        weekStartDate: monday,
-        days: defaultDays,
-      });
-      plan = await plan.populate("days.meals.recipeId");
+    const filter = { userId: new mongoose.Types.ObjectId(userId), weekStartDate: monday };
+    try {
+      const plan = await MealPlan.findOneAndUpdate(filter, {
+        $setOnInsert: { ...filter, days: this.buildDefaultDays(monday) },
+      }, { upsert: true, returnDocument: "after", setDefaultsOnInsert: true })
+        .populate("days.meals.recipeId");
+      return plan!;
+    } catch (error: unknown) {
+      // Another request may win the unique index race on the first insert.
+      if (error instanceof Error && "code" in error && error.code === 11000) {
+        const existing = await this.findPlanByWeek(userId, monday);
+        if (existing) return existing;
+      }
+      throw error;
     }
-
-    return plan;
   }
 
   /**
