@@ -27,8 +27,14 @@ interface EnvConfig {
 const getEnv = (): EnvConfig => {
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
   const NODE_ENV = (process.env.NODE_ENV as "development" | "production" | "test") || "development";
-  const MONGODB_URI =
-    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/smartcook_db";
+  let rawMongoUri = (process.env.MONGODB_URI || "").trim();
+  if (
+    (rawMongoUri.startsWith('"') && rawMongoUri.endsWith('"')) ||
+    (rawMongoUri.startsWith("'") && rawMongoUri.endsWith("'"))
+  ) {
+    rawMongoUri = rawMongoUri.slice(1, -1).trim();
+  }
+  const MONGODB_URI = rawMongoUri || "mongodb://127.0.0.1:27017/smartcook_db";
   const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
   const RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS
     ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
