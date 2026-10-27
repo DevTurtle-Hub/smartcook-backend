@@ -55,7 +55,14 @@ const getEnv = (): EnvConfig => {
   const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+  let rawGoogleClientId = (process.env.GOOGLE_CLIENT_ID || "").trim();
+  if (
+    (rawGoogleClientId.startsWith('"') && rawGoogleClientId.endsWith('"')) ||
+    (rawGoogleClientId.startsWith("'") && rawGoogleClientId.endsWith("'"))
+  ) {
+    rawGoogleClientId = rawGoogleClientId.slice(1, -1).trim();
+  }
+  const GOOGLE_CLIENT_ID = rawGoogleClientId;
 
   const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
   const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
