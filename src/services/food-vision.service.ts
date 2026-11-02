@@ -249,7 +249,7 @@ export const foodVisionService = {
             responseMimeType: "application/json",
             temperature: 0.2,
             maxOutputTokens: 2048,
-            httpOptions: { timeout: 30000, retryOptions: { attempts: 1 } },
+            httpOptions: { timeout: 45000, retryOptions: { attempts: 1 } },
             systemInstruction:
               'Bạn là AI phân tích hình ảnh thực phẩm SmartCook. Hãy phân tích bức ảnh và trả về JSON thuần đúng cấu trúc sau:\n{\n  "isFood": true,\n  "title": "Tên món ăn hoặc nhóm thực phẩm nhận diện",\n  "accuracy": 92,\n  "dishes": [\n    {"name": "Tên món ăn", "confidence": "95%"}\n  ],\n  "ingredients": [\n    {"name": "Tên nguyên liệu", "confidence": "90%", "icon": "food-drumstick", "source": "visible"}\n  ],\n  "pins": [\n    {"text": "Nhãn vị trí", "top": 35, "left": 45}\n  ],\n  "suggestedRecipe": {\n    "title": "Tên món gợi ý chế biến",\n    "desc": "Mô tả ngắn gọn hương vị và cách nấu",\n    "calories": 450,\n    "durationMinutes": 25,\n    "matchPercent": 90\n  }\n}\nQuy tắc bắt buộc:\n- source chỉ dùng: "visible" hoặc "inferred".\n- icon chỉ dùng 1 trong: food-drumstick, fruit-cherries, food-apple, fish, leaf, food-steak, seed, shaker, bottle-tonic, fruit-citrus, egg.\n- pins: top và left là số phần trăm từ 0 đến 80.\n- Nếu không có thực phẩm: {"isFood": false, "title": "Không xác định", "accuracy": 0, "dishes": [], "ingredients": [], "pins": [], "suggestedRecipe": {"title": "", "desc": "", "calories": 0, "durationMinutes": 0, "matchPercent": 0}}.',
           },

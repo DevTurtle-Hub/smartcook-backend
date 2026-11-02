@@ -12,6 +12,10 @@ COPY tsconfig.json ./
 # Install all dependencies (including devDependencies)
 RUN npm ci
 
+# CACHE-BUST: Đảm bảo Render không dùng cache cũ cho mã nguồn và biên dịch
+ARG CACHE_DATE=20261102_2108_V4
+RUN echo "Forcing fresh build at ${CACHE_DATE}"
+
 # Copy source code
 COPY src/ ./src/
 
