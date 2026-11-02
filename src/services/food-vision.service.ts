@@ -115,10 +115,11 @@ function normalizeConfidence(val: unknown): string {
   if (typeof val === "string") {
     const match = val.match(/\d+/);
     if (match) {
-      const num = Math.min(100, Math.max(0, parseInt(match[0], 10)));
+      const parsed = parseInt(match[0], 10);
+      const num = Number.isFinite(parsed) ? Math.min(100, Math.max(0, parsed)) : 85;
       return `${num}%`;
     }
-  } else if (typeof val === "number") {
+  } else if (typeof val === "number" && Number.isFinite(val)) {
     const num = Math.min(100, Math.max(0, Math.round(val)));
     return `${num}%`;
   }
@@ -158,6 +159,7 @@ function sanitizeVisionResult(raw: any): any {
     typeof data.accuracy === "number"
       ? data.accuracy
       : parseFloat(String(data.accuracy || "").replace("%", "")) || 85;
+  if (!Number.isFinite(accuracy)) accuracy = 85;
   data.accuracy = Math.max(0, Math.min(100, Math.round(accuracy)));
 
   // 5. Chuẩn hóa ingredients (chỉ xử lý khi ingredients là mảng)
@@ -182,8 +184,10 @@ function sanitizeVisionResult(raw: any): any {
       .filter((pin: any) => pin && typeof pin === "object")
       .slice(0, 6)
       .map((pin: any) => {
-        let top = typeof pin.top === "number" ? pin.top : parseFloat(pin.top) || 25;
-        let left = typeof pin.left === "number" ? pin.left : parseFloat(pin.left) || 25;
+        const rawTop = typeof pin.top === "number" ? pin.top : parseFloat(pin.top);
+        let top = Number.isFinite(rawTop) ? rawTop : 25;
+        const rawLeft = typeof pin.left === "number" ? pin.left : parseFloat(pin.left);
+        let left = Number.isFinite(rawLeft) ? rawLeft : 25;
 
         // Nếu Gemini trả về toạ độ trên thang 0-1000 (bounding box pixel)
         if (top > 100) top = top / 10;
@@ -199,7 +203,8 @@ function sanitizeVisionResult(raw: any): any {
           top,
           left,
         };
-      });
+      })
+      .filter((pin: any) => Number.isFinite(pin.top) && Number.isFinite(pin.left));
   } else {
     data.pins = [];
   }
@@ -278,9 +283,22 @@ export const foodVisionService = {
     // Tiền xử lý dữ liệu để chống lỗi validate trên các trường phụ (icon, pins, confidence, title...)
     const sanitized = sanitizeVisionResult(raw);
 
-    const parsed = resultSchema.validate(sanitized, { stripUnknown: true });
+    let parsed = resultSchema.validate(sanitized, { stripUnknown: true });
     if (parsed.error) {
-      console.warn("[FoodVision] Invalid result schema", {
+      console.warn("[FoodVision] Invalid result schema, attempting recovery", {
+        fields: parsed.error.details.map((detail) => detail.path.join(".")),
+      });
+
+      // Nếu lỗi do pins hoặc dishes, làm sạch dữ liệu phụ và thử lại để tránh trả 502 vô lý cho người dùng
+      sanitized.pins = [];
+      if (!Array.isArray(sanitized.dishes) || !sanitized.dishes.length) {
+        sanitized.dishes = [{ name: sanitized.title || "Món ăn", confidence: "85%" }];
+      }
+      parsed = resultSchema.validate(sanitized, { stripUnknown: true });
+    }
+
+    if (parsed.error) {
+      console.warn("[FoodVision] Unrecoverable result schema error", {
         fields: parsed.error.details.map((detail) => detail.path.join(".")),
       });
       throw new AppError("Kết quả phân tích chưa hợp lệ. Hãy thử ảnh rõ hơn.", 502);
