@@ -97,13 +97,13 @@ function normalizeIcon(icon: string = "", name: string = ""): string {
   const target = `${icon} ${name}`.toLowerCase();
   if (/gà|chicken|drumstick|vịt|chim|cánh gà|đùi gà/.test(target)) return "food-drumstick";
   if (/bò|beef|thịt|heo|pork|steak|sườn|ba chỉ/.test(target)) return "food-steak";
-  if (/cá|fish|tôm|shrimp|hải sản|seafood|mực|cua|nghêu|sò/.test(target)) return "fish";
+  if (/cá|fish|tôm|shrimp|hải sản|seafood|mực|cua|nghêu|sò|sushi|sashimi|hàu/.test(target)) return "fish";
   if (/trứng|egg/.test(target)) return "egg";
-  if (/sốt|sauce|dầu|oil|nước mắm|nước tương|xì dầu|tonic|giấm/.test(target)) return "bottle-tonic";
+  if (/sốt|sauce|dầu|oil|nước mắm|nước tương|xì dầu|tonic|giấm|wasabi/.test(target)) return "bottle-tonic";
   if (/muối|tiêu|tiêu đen|ớt|gia vị|shaker|đường|bột ngọt/.test(target)) return "shaker";
   if (/hạt|mè|seed|cơm|gạo|rice|đậu|bean|ngô|bắp|vừng/.test(target)) return "seed";
   if (/chanh|cam|citrus|bưởi|quýt|chanh leo/.test(target)) return "fruit-citrus";
-  if (/rau|xà lách|salad|cải|hành|ngò|gừng|nấm|cà chua|bơ|avocado|leaf|rong biển|dưa leo/.test(target)) return "leaf";
+  if (/rau|xà lách|salad|cải|hành|ngò|gừng|nấm|cà chua|bơ|avocado|leaf|rong biển|dưa leo|củ cải/.test(target)) return "leaf";
   if (/táo|trái cây|hoa quả|fruit|dâu|cherry/.test(target)) return "fruit-cherries";
   return "food-apple";
 }
@@ -133,76 +133,86 @@ function sanitizeVisionResult(raw: any): any {
 
   const data = { ...raw };
 
-  // Chuẩn hóa accuracy
+  // 1. Chuẩn hóa isFood (nếu không được định nghĩa rõ ràng thì suy đoán)
+  if (data.isFood !== false && data.isFood !== true) {
+    data.isFood = true;
+  }
+
+  // 2. Chuẩn hóa dishes (chỉ xử lý khi dishes là mảng)
+  if (Array.isArray(data.dishes)) {
+    data.dishes = data.dishes
+      .filter((d: any) => d && (d.name || typeof d === "string"))
+      .slice(0, 10)
+      .map((d: any) => ({
+        name: String(d?.name || d || "Món ăn").trim().slice(0, 120) || "Món ăn",
+        confidence: normalizeConfidence(d?.confidence),
+      }));
+  }
+
+  // 3. Chuẩn hóa title
+  const rawTitle = typeof data.title === "string" ? data.title.trim() : "";
+  data.title = rawTitle.slice(0, 180) || data.dishes?.[0]?.name || "Thực phẩm nhận diện";
+
+  // 4. Chuẩn hóa accuracy
   let accuracy =
     typeof data.accuracy === "number"
       ? data.accuracy
-      : parseFloat(String(data.accuracy || "").replace("%", "")) || 80;
+      : parseFloat(String(data.accuracy || "").replace("%", "")) || 85;
   data.accuracy = Math.max(0, Math.min(100, Math.round(accuracy)));
 
-  // Chuẩn hóa dishes
-  if (Array.isArray(data.dishes)) {
-    data.dishes = data.dishes.slice(0, 10).map((d: any) => ({
-      name: typeof d?.name === "string" ? d.name.trim().slice(0, 120) : "Món ăn",
-      confidence: normalizeConfidence(d?.confidence),
-    }));
-  } else {
-    data.dishes = [];
-  }
-
-  // Chuẩn hóa ingredients
+  // 5. Chuẩn hóa ingredients (chỉ xử lý khi ingredients là mảng)
   if (Array.isArray(data.ingredients)) {
-    data.ingredients = data.ingredients.slice(0, 30).map((item: any) => ({
-      name: typeof item?.name === "string" ? item.name.trim().slice(0, 120) : "Nguyên liệu",
-      confidence: normalizeConfidence(item?.confidence),
-      icon: normalizeIcon(item?.icon, item?.name),
-      source: item?.source === "inferred" ? "inferred" : "visible",
-    }));
-  } else {
-    data.ingredients = [];
+    data.ingredients = data.ingredients
+      .filter((item: any) => item && (item.name || typeof item === "string"))
+      .slice(0, 30)
+      .map((item: any) => {
+        const name = String(item?.name || item || "Nguyên liệu").trim().slice(0, 120) || "Nguyên liệu";
+        return {
+          name,
+          confidence: normalizeConfidence(item?.confidence),
+          icon: normalizeIcon(item?.icon, name),
+          source: item?.source === "inferred" ? "inferred" : "visible",
+        };
+      });
   }
 
-  // Chuẩn hóa pins (toạ độ phần trăm 0 - 85% cho top, 0 - 80% cho left)
+  // 6. Chuẩn hóa pins (toạ độ phần trăm 0 - 85% cho top, 0 - 80% cho left)
   if (Array.isArray(data.pins)) {
-    data.pins = data.pins.slice(0, 6).map((pin: any) => {
-      let top = typeof pin.top === "number" ? pin.top : parseFloat(pin.top) || 20;
-      let left = typeof pin.left === "number" ? pin.left : parseFloat(pin.left) || 20;
+    data.pins = data.pins
+      .filter((pin: any) => pin && typeof pin === "object")
+      .slice(0, 6)
+      .map((pin: any) => {
+        let top = typeof pin.top === "number" ? pin.top : parseFloat(pin.top) || 25;
+        let left = typeof pin.left === "number" ? pin.left : parseFloat(pin.left) || 25;
 
-      // Nếu Gemini trả về toạ độ trên thang 0-1000 (bounding box pixel)
-      if (top > 100) top = top / 10;
-      if (left > 100) left = left / 10;
+        // Nếu Gemini trả về toạ độ trên thang 0-1000 (bounding box pixel)
+        if (top > 100) top = top / 10;
+        if (left > 100) left = left / 10;
 
-      top = Math.max(0, Math.min(85, Math.round(top)));
-      left = Math.max(0, Math.min(80, Math.round(left)));
+        top = Math.max(0, Math.min(85, Math.round(top)));
+        left = Math.max(0, Math.min(80, Math.round(left)));
 
-      return {
-        text: typeof pin.text === "string" ? pin.text.slice(0, 100) : "Nguyên liệu",
-        top,
-        left,
-      };
-    });
+        const text = String(pin.text || "Nguyên liệu").trim().slice(0, 100) || "Nguyên liệu";
+
+        return {
+          text,
+          top,
+          left,
+        };
+      });
   } else {
     data.pins = [];
   }
 
-  // Chuẩn hóa suggestedRecipe
-  if (!data.suggestedRecipe || typeof data.suggestedRecipe !== "object") {
-    data.suggestedRecipe = {
-      title: data.title || "Món ngon gợi ý",
-      desc: "Gợi ý món ăn hấp dẫn chế biến từ nguyên liệu nhận diện.",
-      calories: 0,
-      durationMinutes: 0,
-      matchPercent: data.accuracy || 85,
-    };
-  } else {
-    data.suggestedRecipe = {
-      title: String(data.suggestedRecipe.title || data.title || "Món ngon gợi ý").slice(0, 160),
-      desc: String(data.suggestedRecipe.desc || "Gợi ý món ăn hấp dẫn.").slice(0, 400),
-      calories: Math.max(0, Math.min(10000, parseInt(String(data.suggestedRecipe.calories || 0), 10) || 0)),
-      durationMinutes: Math.max(0, Math.min(1440, parseInt(String(data.suggestedRecipe.durationMinutes || 0), 10) || 0)),
-      matchPercent: Math.max(0, Math.min(100, parseInt(String(data.suggestedRecipe.matchPercent || 85), 10) || 85)),
-    };
-  }
+  // 7. Chuẩn hóa suggestedRecipe
+  const rawRecipe = data.suggestedRecipe && typeof data.suggestedRecipe === "object" ? data.suggestedRecipe : {};
+  data.suggestedRecipe = {
+    title: String(rawRecipe.title || data.title || "Món ngon gợi ý").trim().slice(0, 160) || "Món ngon gợi ý",
+    desc: String(rawRecipe.desc || "Gợi ý món ăn hấp dẫn chế biến từ nguyên liệu nhận diện.").trim().slice(0, 400) || "Gợi ý món ăn hấp dẫn.",
+    calories: Math.max(0, Math.min(10000, parseInt(String(rawRecipe.calories || 0), 10) || 450)),
+    durationMinutes: Math.max(0, Math.min(1440, parseInt(String(rawRecipe.durationMinutes || 0), 10) || 25)),
+    matchPercent: Math.max(0, Math.min(100, parseInt(String(rawRecipe.matchPercent || data.accuracy || 90), 10) || 90)),
+  };
 
   return data;
 }
@@ -265,12 +275,12 @@ export const foodVisionService = {
       throw new AppError("Chưa nhận diện được thực phẩm. Hãy chụp rõ món ăn hoặc nguyên liệu, đủ sáng và gần hơn.", 422);
     }
 
-    // Tiền xử lý dữ liệu để chống lỗi validate trên các trường phụ (icon, pins, confidence)
+    // Tiền xử lý dữ liệu để chống lỗi validate trên các trường phụ (icon, pins, confidence, title...)
     const sanitized = sanitizeVisionResult(raw);
 
     const parsed = resultSchema.validate(sanitized, { stripUnknown: true });
     if (parsed.error) {
-      console.warn("[FoodVision] Invalid result schema after sanitization", {
+      console.warn("[FoodVision] Invalid result schema", {
         fields: parsed.error.details.map((detail) => detail.path.join(".")),
       });
       throw new AppError("Kết quả phân tích chưa hợp lệ. Hãy thử ảnh rõ hơn.", 502);
