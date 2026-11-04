@@ -13,7 +13,7 @@ export class HealthService {
 
     return {
       status: "ok",
-      version: "1.0.2-node22-recovery",
+      version: "2.1.0-deep-culinary-vision",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       database: {
