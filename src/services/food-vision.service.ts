@@ -43,15 +43,15 @@ const resultSchema = Joi.object({
     .items(
       Joi.object({
         text: Joi.string().max(100).required(),
-        top: Joi.number().min(0).max(85).required(),
-        left: Joi.number().min(0).max(80).required(),
+        top: Joi.number().min(0).max(100).required(),
+        left: Joi.number().min(0).max(100).required(),
       })
     )
-    .max(6)
+    .max(10)
     .default([]),
   suggestedRecipe: Joi.object({
     title: Joi.string().max(160).required(),
-    desc: Joi.string().max(400).required(),
+    desc: Joi.string().max(800).required(),
     calories: Joi.number().min(0).max(10000).required(),
     durationMinutes: Joi.number().min(0).max(1440).required(),
     matchPercent: Joi.number().min(0).max(100).required(),
@@ -95,16 +95,16 @@ export function validateFoodPhoto(buffer: Buffer, mimeType: string): void {
 function normalizeIcon(icon: string = "", name: string = ""): string {
   if (VALID_ICONS.has(icon)) return icon;
   const target = `${icon} ${name}`.toLowerCase();
-  if (/gà|chicken|drumstick|vịt|chim|cánh gà|đùi gà/.test(target)) return "food-drumstick";
-  if (/bò|beef|thịt|heo|pork|steak|sườn|ba chỉ/.test(target)) return "food-steak";
-  if (/cá|fish|tôm|shrimp|hải sản|seafood|mực|cua|nghêu|sò|sushi|sashimi|hàu/.test(target)) return "fish";
-  if (/trứng|egg/.test(target)) return "egg";
-  if (/sốt|sauce|dầu|oil|nước mắm|nước tương|xì dầu|tonic|giấm|wasabi/.test(target)) return "bottle-tonic";
-  if (/muối|tiêu|tiêu đen|ớt|gia vị|shaker|đường|bột ngọt/.test(target)) return "shaker";
-  if (/hạt|mè|seed|cơm|gạo|rice|đậu|bean|ngô|bắp|vừng/.test(target)) return "seed";
-  if (/chanh|cam|citrus|bưởi|quýt|chanh leo/.test(target)) return "fruit-citrus";
-  if (/rau|xà lách|salad|cải|hành|ngò|gừng|nấm|cà chua|bơ|avocado|leaf|rong biển|dưa leo|củ cải/.test(target)) return "leaf";
-  if (/táo|trái cây|hoa quả|fruit|dâu|cherry/.test(target)) return "fruit-cherries";
+  if (/gà|chicken|drumstick|vịt|chim|cánh gà|đùi gà|ngan|ngỗng/.test(target)) return "food-drumstick";
+  if (/bò|beef|thịt|heo|pork|steak|sườn|ba chỉ|xúc xích|lạp xưởng|ham|bacon|giò|chả/.test(target)) return "food-steak";
+  if (/cá|fish|tôm|shrimp|hải sản|seafood|mực|cua|nghêu|sò|sushi|sashimi|hàu|lươn|tảo|bạch tuộc|ngừ|hồi|ebiko|surimi/.test(target)) return "fish";
+  if (/trứng|egg|cút/.test(target)) return "egg";
+  if (/sốt|sauce|dầu|oil|nước mắm|nước tương|xì dầu|tonic|giấm|wasabi|mayo|mayonnaise|súp|nước dùng|dashi/.test(target)) return "bottle-tonic";
+  if (/muối|tiêu|tiêu đen|ớt|gia vị|shaker|đường|bột ngọt|hạt nêm|curry|cà ri|sa tế/.test(target)) return "shaker";
+  if (/hạt|mè|seed|cơm|gạo|rice|đậu|bean|ngô|bắp|vừng|bún|phở|mì|noodle|pasta|bánh mì|bread/.test(target)) return "seed";
+  if (/chanh|cam|citrus|bưởi|quýt|chanh leo|tắc|quất/.test(target)) return "fruit-citrus";
+  if (/rau|xà lách|salad|cải|hành|ngò|gừng|nấm|cà chua|bơ|avocado|leaf|rong biển|dưa leo|củ cải|gari|hẹ|thì là|tỏi/.test(target)) return "leaf";
+  if (/táo|trái cây|hoa quả|fruit|dâu|cherry|chuối|dưa hấu|xoài|thơm|dứa/.test(target)) return "fruit-cherries";
   return "food-apple";
 }
 
@@ -178,25 +178,29 @@ function sanitizeVisionResult(raw: any): any {
       });
   }
 
-  // 6. Chuẩn hóa pins (toạ độ phần trăm 0 - 85% cho top, 0 - 80% cho left)
+  // 6. Chuẩn hóa pins (toạ độ an toàn 5% - 85% để ghim hiển thị chuẩn trên màn hình)
   if (Array.isArray(data.pins)) {
     data.pins = data.pins
       .filter((pin: any) => pin && typeof pin === "object")
-      .slice(0, 6)
+      .slice(0, 8)
       .map((pin: any) => {
-        const rawTop = typeof pin.top === "number" ? pin.top : parseFloat(pin.top);
-        let top = Number.isFinite(rawTop) ? rawTop : 25;
-        const rawLeft = typeof pin.left === "number" ? pin.left : parseFloat(pin.left);
-        let left = Number.isFinite(rawLeft) ? rawLeft : 25;
+        const rawTop = pin.top ?? pin.y ?? pin.bottom ?? 25;
+        const rawLeft = pin.left ?? pin.x ?? pin.right ?? 25;
+
+        let top = typeof rawTop === "number" ? rawTop : parseFloat(String(rawTop).replace("%", ""));
+        let left = typeof rawLeft === "number" ? rawLeft : parseFloat(String(rawLeft).replace("%", ""));
+
+        if (!Number.isFinite(top)) top = 25;
+        if (!Number.isFinite(left)) left = 25;
 
         // Nếu Gemini trả về toạ độ trên thang 0-1000 (bounding box pixel)
         if (top > 100) top = top / 10;
         if (left > 100) left = left / 10;
 
-        top = Math.max(0, Math.min(85, Math.round(top)));
-        left = Math.max(0, Math.min(80, Math.round(left)));
+        top = Math.max(5, Math.min(85, Math.round(top)));
+        left = Math.max(5, Math.min(80, Math.round(left)));
 
-        const text = String(pin.text || "Nguyên liệu").trim().slice(0, 100) || "Nguyên liệu";
+        const text = String(pin.text || pin.label || pin.name || "Nguyên liệu").trim().slice(0, 100) || "Nguyên liệu";
 
         return {
           text,
@@ -213,7 +217,7 @@ function sanitizeVisionResult(raw: any): any {
   const rawRecipe = data.suggestedRecipe && typeof data.suggestedRecipe === "object" ? data.suggestedRecipe : {};
   data.suggestedRecipe = {
     title: String(rawRecipe.title || data.title || "Món ngon gợi ý").trim().slice(0, 160) || "Món ngon gợi ý",
-    desc: String(rawRecipe.desc || "Gợi ý món ăn hấp dẫn chế biến từ nguyên liệu nhận diện.").trim().slice(0, 400) || "Gợi ý món ăn hấp dẫn.",
+    desc: String(rawRecipe.desc || "Gợi ý món ăn hấp dẫn chế biến từ nguyên liệu nhận diện.").trim().slice(0, 800) || "Gợi ý món ăn hấp dẫn.",
     calories: Math.max(0, Math.min(10000, parseInt(String(rawRecipe.calories || 0), 10) || 450)),
     durationMinutes: Math.max(0, Math.min(1440, parseInt(String(rawRecipe.durationMinutes || 0), 10) || 25)),
     matchPercent: Math.max(0, Math.min(100, parseInt(String(rawRecipe.matchPercent || data.accuracy || 90), 10) || 90)),
@@ -240,18 +244,45 @@ export const foodVisionService = {
               parts: [
                 { inlineData: { mimeType, data: buffer.toString("base64") } },
                 {
-                  text: "Bạn là chuyên gia thẩm định ẩm thực AI. Hãy phân tích kỹ bức ảnh món ăn hoặc nguyên liệu này:\n1. Nhận diện tên món ăn chính xác (dishes).\n2. Nhận diện đầy đủ các nguyên liệu nhìn thấy được (visible) và các gia vị/sốt suy đoán từ món ăn (inferred).\n3. Đánh dấu vị trí các thành phần chính (pins) với toạ độ phần trăm top (10-80), left (10-80).\n4. Đề xuất một công thức nấu ăn tương thích (suggestedRecipe) kèm thời gian nấu và calo ước tính.\nNếu ảnh không phải đồ ăn, trả isFood: false.",
+                  text: "Hãy thẩm định ẩm thực và phân tích chuyên sâu bức ảnh này (tên món, nguyên liệu nhìn thấy & suy đoán, toạ độ ghim thành phần, công thức đầu bếp gợi ý) theo đúng định dạng JSON yêu cầu.",
                 },
               ],
             },
           ],
           config: {
             responseMimeType: "application/json",
-            temperature: 0.2,
-            maxOutputTokens: 2048,
+            temperature: 0.3,
+            maxOutputTokens: 2500,
             httpOptions: { timeout: 45000, retryOptions: { attempts: 1 } },
-            systemInstruction:
-              'Bạn là AI phân tích hình ảnh thực phẩm SmartCook. Hãy phân tích bức ảnh và trả về JSON thuần đúng cấu trúc sau:\n{\n  "isFood": true,\n  "title": "Tên món ăn hoặc nhóm thực phẩm nhận diện",\n  "accuracy": 92,\n  "dishes": [\n    {"name": "Tên món ăn", "confidence": "95%"}\n  ],\n  "ingredients": [\n    {"name": "Tên nguyên liệu", "confidence": "90%", "icon": "food-drumstick", "source": "visible"}\n  ],\n  "pins": [\n    {"text": "Nhãn vị trí", "top": 35, "left": 45}\n  ],\n  "suggestedRecipe": {\n    "title": "Tên món gợi ý chế biến",\n    "desc": "Mô tả ngắn gọn hương vị và cách nấu",\n    "calories": 450,\n    "durationMinutes": 25,\n    "matchPercent": 90\n  }\n}\nQuy tắc bắt buộc:\n- source chỉ dùng: "visible" hoặc "inferred".\n- icon chỉ dùng 1 trong: food-drumstick, fruit-cherries, food-apple, fish, leaf, food-steak, seed, shaker, bottle-tonic, fruit-citrus, egg.\n- pins: top và left là số phần trăm từ 0 đến 80.\n- Nếu không có thực phẩm: {"isFood": false, "title": "Không xác định", "accuracy": 0, "dishes": [], "ingredients": [], "pins": [], "suggestedRecipe": {"title": "", "desc": "", "calories": 0, "durationMinutes": 0, "matchPercent": 0}}.',
+            systemInstruction: `Bạn là Chuyên gia Giám định Ẩm thực & Bếp trưởng Trí tuệ Nhân tạo SmartCook (Executive Chef & Deep Culinary Vision Specialist).
+Nhiệm vụ của bạn là phân tích sâu sắc, tinh tế và chuyên nghiệp bức ảnh món ăn hoặc nguyên liệu thực phẩm:
+
+1. PHÂN TÍCH MÓN ĂN (dishes):
+- Nhận diện chính xác tên các món ăn hoặc set ăn cụ thể với phong cách ẩm thực rõ ràng (ví dụ: 'Mâm Sushi & Sashimi Tổng Hợp Tokyo', 'Bò Bít Tết Sốt Tiêu Đen', 'Phở Bò Tái Lăn Hà Nội').
+- Độ tin cậy (confidence) định dạng chuỗi phần trăm từ '85%' đến '99%'.
+
+2. BÓC TÁCH NGUYÊN LIỆU CHUYÊN SÂU (ingredients):
+- Nhận diện đầy đủ cả nguyên liệu nhìn thấy rõ (source: 'visible') và các thành phần cốt lõi tạo nên hương vị đặc trưng (source: 'inferred' như sốt ướp, gia vị ngấm, nước dùng, thảo mộc, bơ tỏi).
+- Tên nguyên liệu cần cụ thể, giàu giá trị ẩm thực (ví dụ: 'Cá hồi Na Uy tươi phi lê', 'Cơm dẻo trộn giấm Sushi', 'Thịt thăn bò Úc', 'Hành tây caramen', 'Sốt tiêu đen thơm nồng').
+- Gán đúng icon từ danh sách: food-drumstick, fruit-cherries, food-apple, fish, leaf, food-steak, seed, shaker, bottle-tonic, fruit-citrus, egg.
+
+3. ĐÁNH DẤU VỊ TRÍ CHÍNH XÁC (pins):
+- Tạo từ 2 đến 5 ghim (pins) đánh dấu đúng vào các thành phần ẩm thực đặc trưng trên ảnh.
+- Toạ độ top (15 - 80) và left (15 - 80) là toạ độ phần trăm trên ảnh.
+- Nhãn text ngắn gọn, chuyên nghiệp (ví dụ: 'Sashimi cá hồi phi lê', 'Sushi cuộn trứng tôm', 'Thăn bò áp chảo').
+
+4. CÔNG THỨC GỢI Ý ĐẦU BẾP (suggestedRecipe):
+- title: Tên món ăn gợi ý hấp dẫn, chuẩn vị nhà hàng.
+- desc: Mô tả sâu sắc, súc tích (100 - 350 ký tự) gồm cảm nhận tầng vị (béo bùi, giòn thanh...) và bí quyết độc quyền của đầu bếp (kỹ thuật lửa, nhiệt độ, cách ướp hoặc nước chấm đi kèm).
+- calories: Ước tính calo thực tế cho 1 khẩu phần (ví dụ 350 - 650 kcal).
+- durationMinutes: Thời gian thực hiện hợp lý (ví dụ 20 - 45 phút).
+- matchPercent: Độ tương thích nguyên liệu (88 - 98%).
+
+Quy tắc bắt buộc:
+- source chỉ dùng: 'visible' hoặc 'inferred'.
+- icon chỉ dùng 1 trong: food-drumstick, fruit-cherries, food-apple, fish, leaf, food-steak, seed, shaker, bottle-tonic, fruit-citrus, egg.
+- pins: top và left là số từ 0 đến 100.
+- Nếu bức ảnh hoàn toàn không có thực phẩm: {"isFood": false, "title": "Không xác định", "accuracy": 0, "dishes": [], "ingredients": [], "pins": [], "suggestedRecipe": {"title": "", "desc": "", "calories": 0, "durationMinutes": 0, "matchPercent": 0}}.`,
           },
         });
 
