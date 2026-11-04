@@ -5,16 +5,16 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# CACHE-BUST STAGE 1: Đảm bảo Render không dùng cache cũ cho mã nguồn và biên dịch
+ARG BUILD_ID=20261104_1605_V7
+RUN echo "Fresh build started for version: ${BUILD_ID}"
+
 # Copy package manifests
 COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install all dependencies (including devDependencies)
 RUN npm ci
-
-# CACHE-BUST: Đảm bảo Render không dùng cache cũ cho mã nguồn và biên dịch
-ARG CACHE_DATE=20261102_2108_V4
-RUN echo "Forcing fresh build at ${CACHE_DATE}"
 
 # Copy source code
 COPY src/ ./src/
@@ -33,6 +33,10 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+# CACHE-BUST STAGE 2: Buộc Runner phải copy dist mới, không dùng cache cũ của container trước
+ARG BUILD_ID=20261104_1605_V7
+RUN echo "Deploying fresh runner container: ${BUILD_ID}"
 
 # Create logs directory and ensure proper ownership for non-privileged user
 RUN mkdir -p /app/logs && chown -R node:node /app
